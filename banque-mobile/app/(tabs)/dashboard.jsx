@@ -131,7 +131,7 @@ export default function DashboardScreen() {
       {/* ACTIONS RAPIDES */}
       <View style={styles.actionsRow}>
         {[
-          { icon: "↗", label: "Virement", onPress: () => router.push("/(tabs)/transactions") },
+          { icon: "↗", label: "Virement", onPress: () => router.push("/(tabs)/virement") },
           { icon: "🕐", label: "Historique", onPress: () => router.push("/(tabs)/transactions") },
           { icon: "📅", label: "Rendez-vous", onPress: () => router.push("/(tabs)/rdv") },
           { icon: "💬", label: "Assistant", onPress: () => {} },

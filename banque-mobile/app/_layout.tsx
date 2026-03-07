@@ -3,14 +3,12 @@ import { Image, View } from "react-native";
 
 export default function RootLayout() {
   const segments = useSegments();
-
-  // Vérifie si on est dans (auth)
   const isAuthScreen = segments[0] === "(auth)";
 
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
-      {/* Affiche le logo seulement si ce n'est PAS une page auth */}
-      {!isAuthScreen && (
+      {/* Logo uniquement sur les pages auth */}
+      {isAuthScreen && (
         <View
           style={{
             flexDirection: "row",
@@ -25,15 +23,10 @@ export default function RootLayout() {
         >
           <Image
             source={require("../assets/images/wifak-logo.png")}
-            style={{
-              width: 200,
-              height: 80,
-              resizeMode: "contain",
-            }}
+            style={{ width: 200, height: 80, resizeMode: "contain" }}
           />
         </View>
       )}
-
       <View style={{ flex: 1 }}>
         <Slot />
       </View>
