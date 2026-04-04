@@ -1,200 +1,251 @@
-# 🏦 Wifak Bank — Application Mobile
+# 💳 Banque Mobile App – PFE
 
-Application mobile bancaire développée dans le cadre d'un **Projet de Fin d'Études (PFE)**, permettant aux clients de Wifak Bank de gérer leurs comptes, effectuer des virements, prendre des rendez-vous et interagir avec un assistant IA.
-
----
-
-## 📱 Aperçu
-
-| Connexion | Dashboard | Comptes | Rendez-vous |
-|:---------:|:---------:|:-------:|:-----------:|
-| Authentification sécurisée avec OTP | Vue d'ensemble du compte | Gestion des comptes bancaires | Prise de RDV en agence |
+Application bancaire mobile développée dans le cadre du **Projet de Fin d'Études (PFE)**.
+Le projet permet aux clients d’une banque de gérer leur compte, consulter leurs transactions et prendre des rendez-vous avec un conseiller via une application mobile.
 
 ---
 
-## 🚀 Fonctionnalités
+# 📱 Fonctionnalités principales
 
-### 👤 Authentification
-- Inscription en 2 étapes (infos personnelles + sécurité)
-- Connexion par email / mot de passe
-- Vérification OTP par email
-- Réinitialisation du mot de passe
+### 🔐 Authentification
 
-### 🏠 Dashboard
-- Solde en temps réel
-- Dernières transactions
-- Accès rapide aux fonctionnalités principales
+* Inscription utilisateur
+* Connexion sécurisée avec **JWT**
+* Vérification par **OTP envoyé par email**
+* Gestion des rôles (Client / Admin)
 
-### 💳 Comptes
-- Liste des comptes bancaires
-- Détail et historique par compte
-- Téléchargement de relevé PDF
+### 💰 Gestion du compte
 
-### 💸 Virements
-- Virement entre comptes
-- Virement vers un bénéficiaire
+* Consultation du compte bancaire
+* Affichage du solde
+* Informations du client
 
-### 📅 Rendez-vous
-- Calendrier interactif avec créneaux disponibles
-- Prise de rendez-vous en agence
-- Suivi des RDV (À venir / Passés)
-- Annulation avec motif
+### 💸 Transactions
 
-### 💬 Assistant IA
-- Chatbot bancaire intelligent
+* Liste des transactions
+* Historique des opérations
 
-### 👤 Profil
-- Informations personnelles
-- Sécurité & mot de passe
-- Notifications, langue, apparence
-- Appareils connectés
+### 📅 Rendez-vous bancaire
+
+* Prendre un rendez-vous avec la banque
+* Modifier un rendez-vous
+* Supprimer un rendez-vous
+
+### 🛠 Administration
+
+* Liste des clients
+* Détails d’un client
+* Statistiques globales
 
 ---
 
-## 🛠️ Stack Technique
+# 🧰 Technologies utilisées
 
-### Mobile — `banque-mobile/`
-| Technologie | Version |
-|-------------|---------|
-| React Native | via Expo |
-| Expo SDK | 55 |
-| Expo Router | File-based navigation |
-| TypeScript / JSX | — |
+## Backend
 
-### Backend — `banque-backend/`
-| Technologie | Version |
-|-------------|---------|
-| Node.js | — |
-| Express.js | 5.x |
-| PostgreSQL | — |
-| JWT | Authentification |
-| Nodemailer | Envoi d'emails OTP |
-| bcryptjs | Hashage des mots de passe |
-| PDFKit | Génération de relevés |
+* **Node.js**
+* **Express.js**
+* **PostgreSQL**
+* **JWT Authentication**
+* **Nodemailer** (OTP Email)
+* **bcryptjs** (hash mot de passe)
+
+## Mobile
+
+* **React Native**
+* **Expo**
+* **Expo Router**
+* **Zustand** (gestion d'état)
 
 ---
 
-## 📁 Structure du projet
+# 🏗 Architecture du projet
 
 ```
-banque-app-pfe-main/
-├── banque-mobile/              # Application React Native (Expo)
-│   ├── app/
-│   │   ├── (auth)/             # Pages d'authentification
-│   │   │   ├── login.jsx
-│   │   │   ├── register-step1.jsx
-│   │   │   ├── register-step2.jsx
-│   │   │   ├── otp.tsx
-│   │   │   ├── forgot-password.jsx
-│   │   │   └── reset-password.jsx
-│   │   ├── (tabs)/             # Pages principales (avec barre de navigation)
-│   │   │   ├── dashboard.jsx
-│   │   │   ├── comptes.jsx
-│   │   │   ├── rdv.jsx
-│   │   │   ├── assistant.jsx
-│   │   │   ├── profil.jsx
-│   │   │   ├── virement.jsx
-│   │   │   ├── transactions.jsx
-│   │   │   └── _layout.tsx
-│   │   └── _layout.tsx
-│   ├── assets/images/
-│   ├── servives/api.js         # Configuration Axios
-│   └── store/authStore.js      # Gestion du token JWT
+banque-app-pfe
 │
-└── banque-backend/             # API REST Node.js
-    ├── server.js
-    ├── config/db.js             # Connexion PostgreSQL
-    ├── routes/
-    │   ├── auth.routes.js
-    │   ├── account.routes.js
-    │   ├── transaction.routes.js
-    │   ├── appointment.routes.js
-    │   └── admin.routes.js
-    ├── controllers/
-    ├── middlewares/
-    └── .env                    # Variables d'environnement (non versionné)
+├── banque-backend
+│   │
+│   ├── config
+│   │   └── db.js
+│   │
+│   ├── controllers
+│   │   ├── auth.controller.js
+│   │   ├── account.controller.js
+│   │   ├── transaction.controller.js
+│   │   ├── appointment.controller.js
+│   │   └── admin.controller.js
+│   │
+│   ├── middlewares
+│   │   ├── authMiddleware.js
+│   │   └── adminMiddleware.js
+│   │
+│   ├── routes
+│   │   ├── auth.routes.js
+│   │   ├── account.routes.js
+│   │   ├── transaction.routes.js
+│   │   ├── appointment.routes.js
+│   │   └── admin.routes.js
+│   │
+│   ├── server.js
+│   └── package.json
+│
+├── banque-mobile
+│   │
+│   ├── app
+│   │   ├── (auth)
+│   │   ├── (tabs)
+│   │   └── index.tsx
+│   │
+│   ├── components
+│   ├── assets
+│   ├── store
+│   └── package.json
+│
+└── README.md
 ```
 
 ---
 
-## ⚙️ Installation & Lancement
+# ⚙ Installation du projet
 
-### Prérequis
-- Node.js ≥ 18
-- PostgreSQL
-- Expo Go (sur téléphone) ou émulateur
+## 1️⃣ Cloner le projet
 
-### 1. Cloner le projet
-```bash
+```
 git clone https://github.com/molka-gara-hellal/banque-app-pfe.git
-cd banque-app-pfe-main
 ```
 
-### 2. Configurer le Backend
-```bash
+---
+
+# 🚀 Backend
+
+## Installation
+
+```
 cd banque-backend
 npm install
 ```
 
-Créer le fichier `.env` :
-```env
+## Configuration
+
+Créer un fichier `.env`
+
+```
+PORT=5000
+
 DB_HOST=localhost
-DB_PORT=5432
 DB_USER=postgres
-DB_PASSWORD=votre_mot_de_passe
-DB_NAME=banque_db
-JWT_SECRET=votre_secret_jwt
-EMAIL_USER=votre_email@gmail.com
-EMAIL_PASS=votre_mot_de_passe_app
+DB_PASSWORD=your_password
+DB_NAME=banque_app
+DB_PORT=5433
+
+JWT_SECRET=your_secret
+
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_USER=your_smtp_user
+SMTP_PASS=your_smtp_pass
+
+MAIL_FROM=your_email@gmail.com
+OTP_TTL_SECONDS=300
 ```
 
-Créer les tables dans PostgreSQL puis lancer :
-```bash
-npm run dev
-# Serveur sur http://localhost:5000
+## Lancer le serveur
+
+```
+node server.js
 ```
 
-### 3. Lancer l'Application Mobile
-```bash
+Le backend tourne sur :
+
+```
+http://localhost:5000
+```
+
+---
+
+# 📱 Mobile
+
+## Installation
+
+```
 cd banque-mobile
 npm install
+```
+
+## Lancer l'application
+
+```
 npx expo start
 ```
 
-Scanner le QR code avec **Expo Go** sur votre téléphone.
+Puis scanner le **QR code avec Expo Go**.
 
 ---
 
-## 🗄️ Base de données
+# 🔗 API Endpoints
 
-Les principales tables :
+## Authentification
 
-| Table | Description |
-|-------|-------------|
-| `users` | Comptes utilisateurs |
-| `accounts` | Comptes bancaires |
-| `transactions` | Historique des transactions |
-| `appointments` | Rendez-vous en agence |
-| `disponibilites` | Créneaux disponibles pour RDV |
+```
+POST /api/auth/register
+POST /api/auth/login
+POST /api/auth/send-otp-email
+POST /api/auth/verify-otp
+GET  /api/auth/me
+```
+
+## Comptes
+
+```
+GET /api/accounts/me
+```
+
+## Transactions
+
+```
+GET /api/transactions
+```
+
+## Rendez-vous
+
+```
+POST   /api/appointments
+GET    /api/appointments
+PUT    /api/appointments/:id
+DELETE /api/appointments/:id
+```
+
+## Administration
+
+```
+GET /api/admin/clients
+GET /api/admin/clients/:id
+GET /api/admin/stats
+```
 
 ---
 
-## 🔐 Sécurité
+# 🔐 Sécurité
 
-- Mots de passe hashés avec **bcryptjs**
-- Authentification par **JWT** (Bearer Token)
-- Vérification **OTP** par email à l'inscription
-- Variables sensibles dans `.env` (non committé)
+* Authentification avec **JWT**
+* Mots de passe hashés avec **bcrypt**
+* OTP sécurisé avec **SHA256**
+* Middleware d'authentification
+* Gestion des rôles utilisateurs
 
 ---
 
-## 👩‍💻 Auteure
+# 👩‍💻 Auteur
+
+Projet réalisé par :
 
 **Molka Gara Hellal**
-Projet de Fin d'Études — 2025/2026
+
+Projet de Fin d'Études – Développement d'une application bancaire mobile.
 
 ---
 
-## 📄 Licence
+# 📄 Licence
 
-Projet académique — tous droits réservés.
+Projet académique réalisé dans le cadre d'un PFE.
