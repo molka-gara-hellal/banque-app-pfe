@@ -1,16 +1,26 @@
-import { useRouter, useSegments } from "expo-router";
-import { Slot } from "expo-router";
+import { Slot, useRouter, useSegments } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const TABS = [
-  { name: "dashboard",  label: "Accueil",      icon: "🏠" },
-  { name: "comptes",    label: "Comptes",       icon: "💳" },
-  { name: "rdv",        label: "Rendez-vous",   icon: "📅" },
-  { name: "assistant",  label: "Assistant",     icon: "💬" },
-  { name: "profil",     label: "Profil",        icon: "👤" },
+  { name: "dashboard", label: "Accueil",      icon: "🏠" },
+  { name: "comptes",   label: "Comptes",       icon: "💳" },
+  { name: "rdv",       label: "Rendez-vous",   icon: "📅" },
+  { name: "assistant", label: "Assistant",     icon: "💬" },
+  { name: "profil",    label: "Profil",        icon: "👤" },
 ];
 
-const HIDDEN_TABS = ["virement", "transactions", "analyse-profil"];
+// Pages sans barre de navigation
+const HIDDEN_TABS = [
+  "virement",
+  "transactions",
+  "analyse-profil",
+  "login",
+  "forgot-password",
+  "register-step1",
+  "register-step2",
+  "otp",
+  "reset-password",
+];
 
 export default function TabsLayout() {
   const router = useRouter();
@@ -26,7 +36,7 @@ export default function TabsLayout() {
 
       {showBar && (
         <View style={s.tabBar}>
-          {TABS.map(tab => {
+          {TABS.map((tab) => {
             const isActive = currentTab === tab.name;
             return (
               <TouchableOpacity
@@ -35,7 +45,9 @@ export default function TabsLayout() {
                 onPress={() => router.push(`/(tabs)/${tab.name}`)}
               >
                 <Text style={s.tabIcon}>{tab.icon}</Text>
-                <Text style={[s.tabLabel, isActive && s.tabLabelActive]}>{tab.label}</Text>
+                <Text style={[s.tabLabel, isActive && s.tabLabelActive]}>
+                  {tab.label}
+                </Text>
               </TouchableOpacity>
             );
           })}
@@ -69,9 +81,7 @@ const s = StyleSheet.create({
     borderRadius: 14,
     gap: 3,
   },
-  tabItemActive: {
-    backgroundColor: "#EBF5FF",
-  },
+  tabItemActive: { backgroundColor: "#EBF5FF" },
   tabIcon: { fontSize: 20 },
   tabLabel: { fontSize: 10, color: "#888", fontWeight: "500" },
   tabLabelActive: { color: "#1a3c6e", fontWeight: "700" },
