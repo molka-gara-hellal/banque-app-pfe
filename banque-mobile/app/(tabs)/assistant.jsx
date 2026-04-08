@@ -11,17 +11,73 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useRouter } from "expo-router";
 import api from "../../servives/api";
 
 const QUICK_REPLIES = [
-  { label: "💰 Mon solde", text: "Comment consulter mon solde ?" },
+  { label: "💰 Mon solde", text: "Quel est mon solde actuel ?" },
   { label: "💸 Faire un virement", text: "Comment faire un virement ?" },
-  { label: "📅 Prendre un RDV", text: "Comment prendre un rendez-vous en agence ?" },
-  { label: "📋 Mes transactions", text: "Comment voir mes dernières transactions ?" },
+  { label: "📅 Prendre un RDV", text: "J'ai un rendez-vous prévu ?" },
+  { label: "📋 Mes transactions", text: "Montre-moi mes dernières transactions" },
   { label: "📞 Contacter le support", text: "Je voudrais contacter un conseiller humain." },
 ];
 
+// Mapping des liens markdown → routes Expo Router
+const LINK_ROUTES = {
+  virement: "/(tabs)/virement",
+  rdv: "/(tabs)/rdv",
+  comptes: "/(tabs)/comptes",
+  profil: "/(tabs)/profile",
+  transactions: "/(tabs)/transactions",
+};
+
+// Parse un texte qui peut contenir [Texte](lien) markdown
+function parseBubbleText(text, router) {
+  // Regex pour détecter [label](target)
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = linkRegex.exec(text)) !== null) {
+    // Texte avant le lien
+    if (match.index > lastIndex) {
+      parts.push(
+        <Text key={`t-${lastIndex}`} style={s.bubbleText}>
+          {text.slice(lastIndex, match.index)}
+        </Text>
+      );
+    }
+    const label = match[1];
+    const target = match[2];
+    const route = LINK_ROUTES[target];
+
+    parts.push(
+      <TouchableOpacity
+        key={`l-${match.index}`}
+        onPress={() => route && router.push(route)}
+        style={s.inlineLink}
+      >
+        <Text style={s.inlineLinkText}>{label}</Text>
+      </TouchableOpacity>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Texte restant
+  if (lastIndex < text.length) {
+    parts.push(
+      <Text key={`t-end`} style={s.bubbleText}>
+        {text.slice(lastIndex)}
+      </Text>
+    );
+  }
+
+  return parts.length > 0 ? parts : <Text style={s.bubbleText}>{text}</Text>;
+}
+
 export default function AssistantScreen() {
+  const router = useRouter();
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -49,7 +105,6 @@ export default function AssistantScreen() {
     setIsLoading(true);
 
     try {
-      // Construire l'historique pour l'API (exclure le message de bienvenue)
       const apiHistory = updatedMessages
         .filter((m) => m.id !== 1)
         .map((m) => ({ role: m.role, content: m.text }));
@@ -62,14 +117,13 @@ export default function AssistantScreen() {
         { id: Date.now() + 1, role: "assistant", text: reply },
       ]);
     } catch (e) {
-      // Fallback si le backend est inaccessible
+      // Fallback local si backend inaccessible
       const lower = msg.toLowerCase();
       let fallback = "Je suis désolé, je ne peux pas répondre pour le moment. Veuillez réessayer.";
-      if (lower.includes("solde")) fallback = "Vous pouvez consulter votre solde sur la page Accueil ou dans l'onglet Comptes.";
-      else if (lower.includes("virement")) fallback = "Pour effectuer un virement, accédez à l'onglet Comptes puis appuyez sur Virement.";
-      else if (lower.includes("rendez-vous") || lower.includes("rdv")) fallback = "Pour prendre un rendez-vous, accédez à l'onglet Rendez-vous et choisissez un créneau disponible.";
-      else if (lower.includes("transaction") || lower.includes("historique")) fallback = "Vos transactions sont disponibles dans l'onglet Comptes → Historique.";
-      else if (lower.includes("support") || lower.includes("conseiller")) fallback = "Pour contacter un conseiller, rendez-vous dans Profil → Contacter le support.";
+      if (lower.includes("solde")) fallback = "Impossible de récupérer votre solde pour le moment. Réessayez dans quelques instants.";
+      else if (lower.includes("virement")) fallback = "Pour effectuer un virement, accédez à l'onglet Virement dans la navigation.";
+      else if (lower.includes("rendez-vous") || lower.includes("rdv")) fallback = "Pour voir vos rendez-vous, accédez à l'onglet Rendez-vous.";
+      else if (lower.includes("transaction")) fallback = "Vos transactions sont disponibles dans l'onglet Comptes.";
 
       setMessages((prev) => [
         ...prev,
@@ -134,9 +188,14 @@ export default function AssistantScreen() {
                 </View>
               )}
               <View style={[s.bubble, isUser(msg) ? s.bubbleUser : s.bubbleBot]}>
-                <Text style={[s.bubbleText, isUser(msg) && s.bubbleTextUser]}>
-                  {msg.text}
-                </Text>
+                {isUser(msg) ? (
+                  <Text style={[s.bubbleText, s.bubbleTextUser]}>{msg.text}</Text>
+                ) : (
+                  // Parser les liens markdown pour les messages du bot
+                  <Text style={s.bubbleText}>
+                    {parseBubbleText(msg.text, router)}
+                  </Text>
+                )}
               </View>
             </View>
           ))}
@@ -210,7 +269,6 @@ export default function AssistantScreen() {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F2F4F8" },
 
-  // HEADER
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -227,7 +285,6 @@ const s = StyleSheet.create({
   headerLogo: { width: 40, height: 40, resizeMode: "contain" },
   headerBrand: { fontSize: 18, fontWeight: "bold", color: "#1a3c6e" },
 
-  // ASSISTANT BAR
   assistantBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -251,7 +308,6 @@ const s = StyleSheet.create({
   onlineDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#34C759" },
   onlineText: { fontSize: 11, color: "#34C759", fontWeight: "500" },
 
-  // MESSAGES
   messagesArea: { flex: 1 },
   msgRow: {
     flexDirection: "row",
@@ -284,7 +340,23 @@ const s = StyleSheet.create({
   bubbleText: { fontSize: 14, color: "#1a1a2e", lineHeight: 21 },
   bubbleTextUser: { color: "#fff" },
 
-  // TYPING
+  // Liens inline dans les bulles du bot
+  inlineLink: {
+    backgroundColor: "#EBF5FF",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginTop: 6,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: "#1a3c6e33",
+  },
+  inlineLinkText: {
+    color: "#1a3c6e",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
   typingBubble: { paddingVertical: 14, paddingHorizontal: 16 },
   typingDots: { flexDirection: "row", gap: 5, alignItems: "center" },
   dot: {
@@ -294,7 +366,6 @@ const s = StyleSheet.create({
   dot2: { opacity: 0.5 },
   dot3: { opacity: 0.2 },
 
-  // QUICK REPLIES
   quickRepliesContainer: { marginTop: 8 },
   quickRepliesTitle: { fontSize: 12, color: "#aaa", marginBottom: 10, fontWeight: "500" },
   quickRepliesGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
@@ -313,7 +384,6 @@ const s = StyleSheet.create({
   },
   quickBtnText: { fontSize: 12, color: "#1a3c6e", fontWeight: "600" },
 
-  // INPUT
   inputRow: {
     flexDirection: "row",
     alignItems: "flex-end",

@@ -1,5 +1,8 @@
 require("dotenv").config();
 
+// Tout en haut de server.js, première ligne
+console.log("ENV CHECK:", process.env.GEMINI_API_KEY, process.env.ANTHROPIC_API_KEY);
+
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
