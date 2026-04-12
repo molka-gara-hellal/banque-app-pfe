@@ -1,4 +1,5 @@
 const db = require("../config/db");
+const { sendPushNotification } = require("./notification.controller");
 
 // ✅ VIREMENT
 exports.virement = async (req, res) => {
@@ -73,6 +74,14 @@ exports.virement = async (req, res) => {
         ]
       );
     }
+
+    // ✅ Envoyer notification push
+    await sendPushNotification(
+      userId,
+      "virement",
+      "Virement effectué",
+      `Votre virement de ${montantNum} TND vers ${nom_destinataire} a été effectué.`
+    );
 
     return res.status(200).json({
       message: "Virement effectué avec succès ✅",

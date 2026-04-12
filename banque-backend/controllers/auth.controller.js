@@ -1,4 +1,5 @@
 const bcrypt = require("bcryptjs");
+const { createSession } = require("./session.controller");
 const jwt = require("jsonwebtoken");
 const db = require("../config/db");
 const nodemailer = require("nodemailer");
@@ -83,6 +84,9 @@ exports.login = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
+
+    // ✅ Enregistrer la session (appareil connecté)
+    await createSession(user.id, token, req);
 
     return res.json({
       message: "Login réussi ✅",
