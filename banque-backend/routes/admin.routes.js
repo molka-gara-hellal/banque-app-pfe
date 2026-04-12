@@ -7,16 +7,26 @@ const {
   getClientById,
   getAllAppointments,
   updateAppointmentStatus,
+  getConseillerSuggestions,
   getStats,
   getSegmentation,
+  getPendingRegistrations,
+  approveRegistration,
+  rejectRegistration,
 } = require("../controllers/admin.controller");
 
 // Tous ces endpoints sont accessibles aux agents ET à l'admin
 router.get("/clients",              authMiddleware, agentMiddleware, getAllClients);
 router.get("/clients/:id",          authMiddleware, agentMiddleware, getClientById);
-router.get("/appointments",         authMiddleware, agentMiddleware, getAllAppointments);
-router.put("/appointments/:id",     authMiddleware, agentMiddleware, updateAppointmentStatus);
+router.get("/appointments",                      authMiddleware, agentMiddleware, getAllAppointments);
+router.put("/appointments/:id",                  authMiddleware, agentMiddleware, updateAppointmentStatus);
+router.get("/appointments/:id/suggestions",      authMiddleware, agentMiddleware, getConseillerSuggestions);
 router.get("/stats",                authMiddleware, agentMiddleware, getStats);
 router.get("/segmentation",         authMiddleware, agentMiddleware, getSegmentation);
+
+// ✅ Inscriptions
+router.get("/registrations",              authMiddleware, agentMiddleware, getPendingRegistrations);
+router.post("/registrations/:id/approve", authMiddleware, agentMiddleware, approveRegistration);
+router.post("/registrations/:id/reject",  authMiddleware, agentMiddleware, rejectRegistration);
 
 module.exports = router;

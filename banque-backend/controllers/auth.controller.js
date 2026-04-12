@@ -4,7 +4,7 @@ const db = require("../config/db");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 
-// ✅ REGISTER
+// ✅ REGISTER — crée le compte avec status='pending'
 exports.register = async (req, res) => {
   try {
     const { nom, prenom, email, password, telephone } = req.body;
@@ -24,19 +24,20 @@ exports.register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // ✅ status = 'pending' — en attente de validation agent
     await db.query(
-      "INSERT INTO users (nom, prenom, email, password, telephone, role) VALUES ($1, $2, $3, $4, $5, $6)",
-      [nom || "", prenom || "", email, hashedPassword, telephone || "", "client"]
+      "INSERT INTO users (nom, prenom, email, password, telephone, role, status) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+      [nom || "", prenom || "", email, hashedPassword, telephone || "", "client", "pending"]
     );
 
-    return res.status(201).json({ message: "Utilisateur créé ✅" });
+    return res.status(201).json({ message: "Compte créé — en attente de validation ✅" });
   } catch (err) {
     console.error("Erreur register ❌", err);
     return res.status(500).json({ message: "Erreur serveur" });
   }
 };
 
-// ✅ LOGIN
+// ✅ LOGIN — vérifie que le compte est actif
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -46,7 +47,7 @@ exports.login = async (req, res) => {
     }
 
     const result = await db.query(
-      "SELECT id, email, password, role FROM users WHERE email = $1",
+      "SELECT id, email, password, role, status FROM users WHERE email = $1",
       [email]
     );
 
@@ -59,6 +60,22 @@ exports.login = async (req, res) => {
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) {
       return res.status(400).json({ message: "Mot de passe incorrect" });
+    }
+
+    // ✅ Bloquer si compte en attente
+    if (user.status === "pending") {
+      return res.status(403).json({
+        message: "Votre compte est en attente de validation par un agent Wifak Bank.",
+        status: "pending"
+      });
+    }
+
+    // ✅ Bloquer si compte rejeté
+    if (user.status === "rejected") {
+      return res.status(403).json({
+        message: "Votre demande d'inscription a été refusée. Contactez votre agence.",
+        status: "rejected"
+      });
     }
 
     const token = jwt.sign(
@@ -88,7 +105,7 @@ exports.me = async (req, res) => {
     const userId = req.user.id;
 
     const result = await db.query(
-      "SELECT id, nom, prenom, email, role, created_at FROM users WHERE id = $1",
+      "SELECT id, nom, prenom, email, role, status, created_at FROM users WHERE id = $1",
       [userId]
     );
 
@@ -99,6 +116,31 @@ exports.me = async (req, res) => {
     return res.json(result.rows[0]);
   } catch (err) {
     console.error("Erreur me ❌", err);
+    return res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+// ✅ CHECK STATUS — vérifie si le compte a été activé (polling depuis l'app)
+exports.checkStatus = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email requis" });
+    }
+
+    const result = await db.query(
+      "SELECT status FROM users WHERE email = $1",
+      [email]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ message: "Utilisateur introuvable" });
+    }
+
+    return res.json({ status: result.rows[0].status });
+  } catch (err) {
+    console.error("Erreur checkStatus ❌", err);
     return res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -184,7 +226,7 @@ exports.forgotPassword = async (req, res) => {
     }
 
     const token = crypto.randomBytes(32).toString("hex");
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 heure
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
     await db.query("DELETE FROM password_reset_tokens WHERE email = $1", [email]);
     await db.query(
@@ -306,7 +348,14 @@ exports.verifyOtp = async (req, res) => {
 
     await db.query("DELETE FROM otp_codes WHERE id = $1", [row.id]);
 
-    return res.json({ message: "OTP vérifié ✅" });
+    // ✅ Retourne le status du compte pour que l'app sache quoi afficher
+    const userResult = await db.query(
+      "SELECT status FROM users WHERE email = $1",
+      [email]
+    );
+    const status = userResult.rows[0]?.status || "pending";
+
+    return res.json({ message: "OTP vérifié ✅", status });
   } catch (err) {
     console.error("Erreur verify OTP ❌", err);
     return res.status(500).json({ message: "Erreur vérification OTP" });

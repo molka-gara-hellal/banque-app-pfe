@@ -153,7 +153,7 @@ export default function RdvScreen() {
       setCreateSuccess(true);
       setSelectedTime(null);
       await Promise.all([loadRdvs(), loadDispos()]);
-      setTimeout(() => setCreateSuccess(false), 3000);
+      setTimeout(() => setCreateSuccess(false), 5000);
     } catch (e) { console.log(e?.response?.data); }
     finally { setCreateLoading(false); }
   }
@@ -277,7 +277,7 @@ export default function RdvScreen() {
         {/* SUCCESS MESSAGE */}
         {createSuccess && (
           <View style={s.successBox}>
-            <Text style={s.successText}>✅ Rendez-vous confirmé !</Text>
+            <Text style={s.successText}>⏳ Demande envoyée ! En attente de confirmation par un agent.</Text>
           </View>
         )}
 
@@ -328,6 +328,9 @@ export default function RdvScreen() {
                 <Text style={s.rdvAgence}>{rdv.agence || "Wifak Bank"}</Text>
                 <Text style={s.rdvDate}>{formatDate(rdv.datetime)} • {formatHeure(rdv.datetime)}</Text>
                 <Text style={s.rdvMotif}>{rdv.reason}</Text>
+                {rdv.status === 'confirmed' && rdv.conseiller && rdv.conseiller !== 'À assigner' && (
+                  <Text style={s.rdvConseiller}>👤 {rdv.conseiller}</Text>
+                )}
               </View>
               <View style={[s.statusBadge, { backgroundColor: getStatusColor(rdv.status) + "20" }]}>
                 <Text style={[s.statusText, { color: getStatusColor(rdv.status) }]}>
@@ -375,6 +378,15 @@ export default function RdvScreen() {
                   <Text style={s.motifDetailLabel}>Motif</Text>
                   <Text style={s.motifDetailValue}>{selectedRdv.reason}</Text>
                 </View>
+
+                {selectedRdv.conseiller && selectedRdv.conseiller !== 'À assigner' && (
+                  <View style={s.motifDetailBox}>
+                    <Text style={s.motifDetailLabel}>Conseiller assigné</Text>
+                    <Text style={[s.motifDetailValue, { color: '#1a3c6e', fontWeight: '700' }]}>
+                      👤 {selectedRdv.conseiller}
+                    </Text>
+                  </View>
+                )}
 
                 {selectedRdv.status !== "cancelled" && !isPast(selectedRdv.datetime) && (
                   <TouchableOpacity

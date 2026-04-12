@@ -232,3 +232,82 @@ exports.getSegmentation = async (req, res) => {
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
+
+
+// ─── INSCRIPTIONS EN ATTENTE ─────────────────────────────────────────────────
+
+// GET /api/admin/registrations — users avec status='pending'
+exports.getPendingRegistrations = async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT id, nom, prenom, email, telephone, created_at
+       FROM users
+       WHERE role = 'client' AND status = 'pending'
+       ORDER BY created_at DESC`
+    );
+
+    const registrations = result.rows.map(r => ({
+      id: r.id,
+      name: `${r.prenom} ${r.nom}`,
+      email: r.email,
+      phone: r.telephone,
+      date: r.created_at,
+      status: 'pending',
+    }));
+
+    res.json(registrations);
+  } catch (err) {
+    console.error("Erreur getPendingRegistrations ❌", err);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+// POST /api/admin/registrations/:id/approve — approuver et créer le compte
+exports.approveRegistration = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { accountType } = req.body;
+
+    if (!accountType) {
+      return res.status(400).json({ message: "Type de compte requis" });
+    }
+
+    // Activer l'utilisateur
+    await db.query(
+      `UPDATE users SET status = 'active' WHERE id = $1`,
+      [id]
+    );
+
+    // Générer un IBAN simple
+    const iban = 'TN59' + String(Date.now()).slice(-16).padStart(16, '0');
+
+    // Créer le compte bancaire
+    await db.query(
+      `INSERT INTO accounts (user_id, iban, balance, currency, account_type)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [id, iban, 0, 'TND', accountType]
+    );
+
+    res.json({ message: "Compte approuvé et créé ✅" });
+  } catch (err) {
+    console.error("Erreur approveRegistration ❌", err);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+// POST /api/admin/registrations/:id/reject — refuser l'inscription
+exports.rejectRegistration = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await db.query(
+      `UPDATE users SET status = 'rejected' WHERE id = $1`,
+      [id]
+    );
+
+    res.json({ message: "Inscription refusée ✅" });
+  } catch (err) {
+    console.error("Erreur rejectRegistration ❌", err);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+};

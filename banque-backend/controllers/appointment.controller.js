@@ -1,5 +1,36 @@
 const db = require("../config/db");
 
+// ─── Règle d'assignation automatique par motif ────────────────────────────────
+function assignerConseiller(motif) {
+  const m = (motif || "").toLowerCase();
+
+  if (m.includes("crédit") || m.includes("credit") || m.includes("prêt") || m.includes("pret") || m.includes("immobilier") || m.includes("financement")) {
+    // Alterne entre les deux chargés clientèle
+    return null; // sera assigné par l'agent dans le portail
+  }
+  if (m.includes("ouverture") || m.includes("compte") || m.includes("carte")) {
+    return "Jihen Charfi";
+  }
+  if (m.includes("conseil") || m.includes("information") || m.includes("renseignement")) {
+    return "Sirine Memmi";
+  }
+  return null; // à assigner manuellement
+}
+
+function getSuggestionConseiller(motif) {
+  const m = (motif || "").toLowerCase();
+  if (m.includes("crédit") || m.includes("credit") || m.includes("prêt") || m.includes("pret") || m.includes("immobilier") || m.includes("financement")) {
+    return ["Mokthar Brahem", "Sirine Fantar"];
+  }
+  if (m.includes("ouverture") || m.includes("compte") || m.includes("carte")) {
+    return ["Jihen Charfi"];
+  }
+  if (m.includes("conseil") || m.includes("information") || m.includes("renseignement")) {
+    return ["Sirine Memmi"];
+  }
+  return ["Mokthar Brahem", "Sirine Fantar", "Jihen Charfi", "Sirine Memmi"];
+}
+
 // ✅ GET DISPONIBILITÉS
 exports.getDisponibilites = async (req, res) => {
   try {
@@ -11,7 +42,6 @@ exports.getDisponibilites = async (req, res) => {
        ORDER BY date ASC, heure ASC`
     );
 
-    // Grouper par date
     const grouped = {};
     result.rows.forEach(row => {
       if (!grouped[row.date]) grouped[row.date] = [];
@@ -26,11 +56,11 @@ exports.getDisponibilites = async (req, res) => {
   }
 };
 
-// ✅ CRÉER RDV avec créneau dispo
+// ✅ CRÉER RDV — status='pending' en attente de confirmation agent
 exports.createAppointmentWithDispo = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { disponibilite_id, reason, agence, conseiller } = req.body;
+    const { disponibilite_id, reason, agence } = req.body;
 
     if (!disponibilite_id || !reason) {
       return res.status(400).json({ message: "Créneau et motif requis" });
@@ -52,22 +82,28 @@ exports.createAppointmentWithDispo = async (req, res) => {
       : dispo.date.toISOString().slice(0, 10);
     const datetime = `${dateStr}T${dispo.heure}`;
 
-    // Créer le RDV
+    // Suggestion de conseiller selon le motif (pas encore assigné)
+    const conseillerSuggere = assignerConseiller(reason);
+
+    // ✅ Créer le RDV avec status='pending'
     await db.query(
       `INSERT INTO appointments (user_id, datetime, reason, agence, conseiller, status)
-       VALUES ($1, $2, $3, $4, $5, 'confirmed')`,
+       VALUES ($1, $2, $3, $4, $5, 'pending')`,
       [userId, datetime, reason,
        agence || "Wifak Bank Ksar Hellal",
-       conseiller || "Conseiller Clientèle"]
+       conseillerSuggere || "À assigner"]
     );
 
-    // Marquer créneau indisponible
+    // Réserver le créneau (marquer indisponible)
     await db.query(
       "UPDATE disponibilites SET est_disponible = false WHERE id = $1",
       [disponibilite_id]
     );
 
-    res.status(201).json({ message: "Rendez-vous confirmé ✅" });
+    res.status(201).json({
+      message: "Demande de rendez-vous envoyée ✅ En attente de confirmation.",
+      status: "pending"
+    });
   } catch (err) {
     console.error("Erreur createAppointmentWithDispo ❌", err);
     res.status(500).json({ message: "Erreur serveur" });
@@ -133,5 +169,6 @@ exports.deleteAppointment = async (req, res) => {
   }
 };
 
-// ✅ FALLBACK - ancienne méthode sans dispo
+// ✅ EXPORT suggestion conseillers (utilisé par admin controller)
+exports.getSuggestionConseiller = getSuggestionConseiller;
 exports.createAppointment = exports.createAppointmentWithDispo;

@@ -1,10 +1,15 @@
 const router = require("express").Router();
 
-const { register, login, me, sendOtpEmail, verifyOtp, forgotPassword, resetPassword, changePassword, updateProfile } = require("../controllers/auth.controller");
+const {
+  register, login, me, sendOtpEmail, verifyOtp,
+  forgotPassword, resetPassword, changePassword,
+  updateProfile, checkStatus
+} = require("../controllers/auth.controller");
 const authMiddleware = require("../middlewares/authMiddleware");
 
 router.post("/register", register);
 router.post("/login", login);
+router.post("/check-status", checkStatus); // ✅ polling depuis l'app
 
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
