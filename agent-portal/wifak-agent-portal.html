@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WIFAK BANK — Portail Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-900: #064e3b;
+    --green-800: #065f46;
+    --green-700: #047857;
+    --green-600: #059669;
+    --green-500: #10b981;
+    --green-400: #34d399;
+    --green-100: #d1fae5;
+    --green-50:  #ecfdf5;
+    --red-600:   #dc2626;
+    --red-100:   #fee2e2;
+    --red-50:    #fef2f2;
+    --blue-600:  #2563eb;
+    --blue-100:  #dbeafe;
+    --blue-50:   #eff6ff;
+    --amber-500: #f59e0b;
+    --amber-100: #fef3c7;
+    --gray-900:  #111827;
+    --gray-800:  #1f2937;
+    --gray-700:  #374151;
+    --gray-600:  #4b5563;
+    --gray-500:  #6b7280;
+    --gray-400:  #9ca3af;
+    --gray-300:  #d1d5db;
+    --gray-200:  #e5e7eb;
+    --gray-100:  #f3f4f6;
+    --gray-50:   #f9fafb;
+    --white:     #ffffff;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.10);
+    --shadow-lg: 0 10px 30px rgba(0,0,0,0.14);
+    --radius:    12px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 15px; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--gray-50);
+    color: var(--gray-800);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ─── LAYOUT ────────────────────────────────── */
+  #app { display: flex; min-height: 100vh; }
+  #sidebar {
+    width: 252px;
+    background: linear-gradient(175deg, var(--green-900) 0%, var(--green-800) 100%);
+    display: flex; flex-direction: column;
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+    transition: transform .3s;
+  }
+  #main { margin-left: 252px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+  #content { flex: 1; padding: 32px; max-width: 1200px; width: 100%; }
+
+  /* ─── SIDEBAR ───────────────────────────────── */
+  .sidebar-brand {
+    padding: 28px 24px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .sidebar-brand h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.45rem; color: #fff; letter-spacing: .5px;
+  }
+  .sidebar-brand p { font-size: .75rem; color: rgba(255,255,255,0.5); margin-top: 2px; }
+  .sidebar-nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px; border-radius: 8px; cursor: pointer;
+    color: rgba(255,255,255,0.65); font-size: .875rem; font-weight: 500;
+    transition: background .15s, color .15s;
+    user-select: none;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+  .nav-item.active { background: rgba(255,255,255,0.14); color: #fff; }
+  .nav-item svg { flex-shrink: 0; }
+
+  .sidebar-footer {
+    padding: 14px 12px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .agent-card {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    border-radius: 8px; margin-bottom: 4px;
+  }
+  .agent-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--green-600); display: flex; align-items: center;
+    justify-content: center; color: #fff; font-weight: 700; font-size: .9rem;
+    flex-shrink: 0;
+  }
+  .agent-info p { font-size: .85rem; color: #fff; font-weight: 500; }
+  .agent-info span { font-size: .72rem; color: rgba(255,255,255,0.45); }
+  .btn-logout {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 8px; cursor: pointer; width: 100%;
+    color: rgba(255,255,255,0.55); font-size: .84rem; font-weight: 500;
+    transition: background .15s, color .15s;
+    background: none; border: none; text-align: left;
+  }
+  .btn-logout:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+  /* ─── PAGE HEADER ───────────────────────────── */
+  .page-header { margin-bottom: 28px; }
+  .page-header h1 { font-size: 1.7rem; font-weight: 700; color: var(--gray-900); }
+  .page-header p { font-size: .875rem; color: var(--gray-500); margin-top: 4px; }
+
+  /* ─── CARDS / PANELS ────────────────────────── */
+  .card {
+    background: var(--white); border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-200);
+  }
+  .card-body { padding: 24px; }
+
+  /* ─── BUTTONS ───────────────────────────────── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 18px; border-radius: 8px; font-size: .84rem; font-weight: 600;
+    cursor: pointer; border: none; transition: background .15s, transform .1s, box-shadow .15s;
+    white-space: nowrap;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--green-600); color: #fff; }
+  .btn-primary:hover { background: var(--green-700); box-shadow: 0 4px 12px rgba(5,150,105,.3); }
+  .btn-danger  { background: var(--red-600); color: #fff; }
+  .btn-danger:hover  { background: #b91c1c; }
+  .btn-ghost   { background: var(--gray-100); color: var(--gray-700); }
+  .btn-ghost:hover   { background: var(--gray-200); }
+  .btn:disabled { background: var(--gray-300); color: var(--gray-500); cursor: not-allowed; transform: none; }
+
+  /* ─── BADGES ────────────────────────────────── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 99px; font-size: .75rem; font-weight: 600;
+  }
+  .badge-green  { background: var(--green-100); color: var(--green-700); }
+  .badge-blue   { background: var(--blue-100);  color: var(--blue-600); }
+  .badge-gray   { background: var(--gray-100);  color: var(--gray-600); }
+  .badge-red    { background: var(--red-100);   color: var(--red-600); }
+  .badge-amber  { background: var(--amber-100); color: #92400e; }
+
+  /* ─── INPUTS ────────────────────────────────── */
+  .input-group { display: flex; flex-direction: column; gap: 5px; }
+  .input-group label { font-size: .82rem; font-weight: 600; color: var(--gray-700); }
+  input[type="text"], input[type="password"], input[type="email"], select, textarea {
+    width: 100%; padding: 10px 14px; border-radius: 8px;
+    border: 1.5px solid var(--gray-200); background: var(--gray-50);
+    font-family: inherit; font-size: .875rem; color: var(--gray-800);
+    transition: border .15s, box-shadow .15s; outline: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--green-500); background: #fff;
+    box-shadow: 0 0 0 3px rgba(16,185,129,.12);
+  }
+  .search-wrapper { position: relative; }
+  .search-wrapper svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--gray-400); }
+  .search-wrapper input { padding-left: 40px; }
+
+  /* ─── STAT CARDS ────────────────────────────── */
+  .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 28px; }
+  .stat-card { padding: 22px 20px; }
+  .stat-icon-wrap {
+    width: 44px; height: 44px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
+  }
+  .stat-card .stat-val { font-size: 1.8rem; font-weight: 700; color: var(--gray-900); }
+  .stat-card .stat-label { font-size: .78rem; color: var(--gray-500); margin-top: 2px; }
+
+  /* ─── TABLE ─────────────────────────────────── */
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { border-bottom: 1px solid var(--gray-200); }
+  th { padding: 12px 16px; text-align: left; font-size: .78rem; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: .04em; background: var(--gray-50); }
+  td { padding: 14px 16px; font-size: .87rem; color: var(--gray-700); border-bottom: 1px solid var(--gray-100); }
+  tbody tr:hover { background: var(--gray-50); }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* ─── MODAL ─────────────────────────────────── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px; backdrop-filter: blur(2px);
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: #fff; border-radius: 16px; width: 100%; max-width: 580px;
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+    transform: translateY(20px); transition: transform .2s;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-header { padding: 24px 28px 0; display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h2 { font-size: 1.2rem; font-weight: 700; color: var(--gray-900); }
+  .modal-body { padding: 20px 28px 28px; }
+  .modal-close { background: none; border: none; cursor: pointer; color: var(--gray-400); padding: 4px; border-radius: 6px; }
+  .modal-close:hover { background: var(--gray-100); color: var(--gray-700); }
+
+  /* ─── RADIO CARDS ───────────────────────────── */
+  .radio-card {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 14px 16px; border-radius: 10px; cursor: pointer;
+    border: 1.5px solid var(--gray-200); transition: border .15s, background .15s;
+    margin-bottom: 8px;
+  }
+  .radio-card:hover { border-color: var(--green-400); background: var(--green-50); }
+  .radio-card.selected { border-color: var(--green-500); background: var(--green-50); }
+  .radio-card input[type="radio"] { margin-top: 3px; accent-color: var(--green-600); flex-shrink: 0; }
+  .radio-card-title { font-size: .875rem; font-weight: 600; color: var(--gray-800); }
+  .radio-card-desc  { font-size: .8rem; color: var(--gray-500); margin-top: 2px; }
+
+  /* ─── LOGIN PAGE ────────────────────────────── */
+  #login-page {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 50%, #a7f3d0 100%);
+    padding: 20px;
+  }
+  .login-card {
+    background: #fff; border-radius: 20px; padding: 44px 40px;
+    width: 100%; max-width: 420px; box-shadow: var(--shadow-lg);
+  }
+  .login-logo { text-align: center; margin-bottom: 32px; }
+  .login-logo .logo-icon {
+    width: 60px; height: 60px; border-radius: 14px;
+    background: linear-gradient(135deg, var(--green-600), var(--green-800));
+    margin: 0 auto 14px; display: flex; align-items: center; justify-content: center;
+  }
+  .login-logo h1 { font-family: 'Playfair Display', serif; font-size: 1.6rem; color: var(--green-900); }
+  .login-logo p { font-size: .82rem; color: var(--gray-500); margin-top: 4px; }
+  .login-form { display: flex; flex-direction: column; gap: 18px; }
+  .login-footer { text-align: center; font-size: .78rem; color: var(--gray-400); margin-top: 20px; }
+
+  /* ─── CLIENT REGISTRATION SPECIFIC ─────────── */
+  .reg-card { margin-bottom: 14px; padding: 22px 24px; }
+  .client-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .meta-field label { font-size: .74rem; color: var(--gray-400); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .meta-field p { font-size: .88rem; color: var(--gray-800); margin-top: 2px; }
+  .pending-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; background: #fef3c7; color: #92400e;
+    border-radius: 99px; font-size: .74rem; font-weight: 600; margin-bottom: 14px;
+  }
+
+  /* ─── PROGRESS BAR ──────────────────────────── */
+  .progress-bar { height: 6px; background: var(--gray-200); border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--green-500); border-radius: 99px; }
+
+  /* ─── CLIENT PROFILE ────────────────────────── */
+  .profile-grid { display: grid; grid-template-columns: 260px 1fr; gap: 20px; }
+  .client-list { display: flex; flex-direction: column; gap: 8px; max-height: calc(100vh - 200px); overflow-y: auto; }
+  .client-list-item {
+    padding: 14px 16px; border-radius: 10px; cursor: pointer;
+    background: var(--white); border: 1.5px solid var(--gray-200);
+    display: flex; align-items: center; gap: 12px; transition: border .15s, box-shadow .15s;
+  }
+  .client-list-item:hover { border-color: var(--green-400); box-shadow: var(--shadow-sm); }
+  .client-list-item.selected { border-color: var(--green-500); box-shadow: 0 0 0 2px rgba(16,185,129,.15); }
+  .client-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--green-100); color: var(--green-700);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .9rem; font-weight: 700; flex-shrink: 0;
+  }
+  .client-name { font-size: .875rem; font-weight: 600; color: var(--gray-800); }
+  .client-cin  { font-size: .78rem; color: var(--gray-500); }
+
+  /* ─── TRANSACTIONS ──────────────────────────── */
+  .txn-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--gray-100); }
+  .txn-item:last-child { border-bottom: none; }
+  .txn-icon { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .txn-amount { font-size: .95rem; font-weight: 700; }
+  .txn-amount.credit { color: var(--green-600); }
+  .txn-amount.debit  { color: var(--red-600); }
+
+  /* ─── ACCOUNT CARDS ─────────────────────────── */
+  .account-card {
+    padding: 18px 20px; border-radius: 12px;
+    background: linear-gradient(135deg, var(--green-50) 0%, #d1fae5 100%);
+    border: 1px solid var(--green-200); margin-bottom: 12px;
+  }
+
+  /* ─── APPOINTMENT ───────────────────────────── */
+  .apt-card { padding: 22px 24px; margin-bottom: 12px; }
+  .apt-meta { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin: 14px 0; }
+
+  /* ─── ML CHART ──────────────────────────────── */
+  .ml-stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
+  .ml-stat-card { padding: 18px 16px; border-radius: var(--radius); cursor: pointer; transition: box-shadow .15s; }
+  .ml-stat-card:hover { box-shadow: var(--shadow-md); }
+  .ml-stat-val { font-size: 1.9rem; font-weight: 700; }
+  .ml-stat-label { font-size: .78rem; font-weight: 600; margin-top: 2px; }
+
+  .info-box { border-radius: var(--radius); padding: 18px 20px; margin-bottom: 24px; background: var(--blue-50); border: 1px solid var(--blue-100); }
+
+  /* ─── EMPTY STATE ───────────────────────────── */
+  .empty-state { text-align: center; padding: 48px 24px; color: var(--gray-400); }
+  .empty-state svg { margin: 0 auto 14px; opacity: .35; display: block; }
+  .empty-state p { font-size: .9rem; }
+
+  /* ─── APPROVED PILL ─────────────────────────── */
+  .approved-row {
+    background: var(--green-50); border: 1px solid var(--green-200);
+    border-radius: 10px; padding: 12px 16px; margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .rejected-row {
+    background: var(--red-50); border: 1px solid #fecaca;
+    border-radius: 10px; padding: 12px 16px; margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  /* ─── SECTION DIVIDER ───────────────────────── */
+  .section-title { font-size: 1rem; font-weight: 700; color: var(--gray-800); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+  /* ─── TOAST ─────────────────────────────────── */
+  #toast {
+    position: fixed; bottom: 28px; right: 28px; z-index: 999;
+    background: var(--gray-900); color: #fff; padding: 12px 20px;
+    border-radius: 10px; font-size: .85rem; font-weight: 500;
+    box-shadow: var(--shadow-lg);
+    transform: translateY(20px); opacity: 0; pointer-events: none;
+    transition: all .25s;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.toast-success { background: var(--green-700); }
+  #toast.toast-error   { background: var(--red-600); }
+
+  /* ─── UTILS ─────────────────────────────────── */
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .justify-between { justify-content: space-between; }
+  .gap-8 { gap: 8px; }
+  .gap-12 { gap: 12px; }
+  .gap-16 { gap: 16px; }
+  .mt-4 { margin-top: 4px; }
+  .mt-8 { margin-top: 8px; }
+  .mt-16 { margin-top: 16px; }
+  .mt-20 { margin-top: 20px; }
+  .mb-8  { margin-bottom: 8px; }
+  .mb-16 { margin-bottom: 16px; }
+  .mb-20 { margin-bottom: 20px; }
+  .hidden { display: none !important; }
+  .text-sm { font-size: .8rem; }
+  .text-muted { color: var(--gray-500); }
+  .fw-600 { font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ LOGIN PAGE ══════════════ -->
+<div id="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">
+        <svg width="32" height="32" fill="none" stroke="#fff" stroke-width="2.2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>
+      <h1>WIFAK BANK</h1>
+      <p>Portail Agents — Accès sécurisé</p>
+    </div>
+    <div class="login-form">
+      <div class="input-group">
+        <label>Email</label>
+        <input type="email" id="login-user" placeholder="ex: mariem.graiet@wifakbank.tn" />
+      </div>
+      <div class="input-group">
+        <label>Mot de passe</label>
+        <input type="password" id="login-pass" placeholder="••••••••" />
+      </div>
+      <div id="login-error" style="color:#dc2626;font-size:0.85rem;text-align:center;display:none;"></div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;" onclick="doLogin()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Se connecter
+      </button>
+    </div>
+    <p class="login-footer">Accès réservé aux agents WIFAK BANK.<br>Si vous n'avez pas de compte, contactez votre siège.</p>
+  </div>
+</div>
+
+<!-- ══════════════ MAIN DASHBOARD ══════════════ -->
+<div id="app" class="hidden">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="sidebar-brand">
+      <h1>WIFAK BANK</h1>
+      <p>Portail Agent</p>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" onclick="navigate('home')" data-page="home">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Tableau de bord
+      </div>
+      <div class="nav-item" onclick="navigate('registrations')" data-page="registrations">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        Demandes d'inscription
+        <span id="reg-badge" style="margin-left:auto;background:rgba(255,255,255,0.2);border-radius:99px;padding:1px 8px;font-size:.72rem;">3</span>
+      </div>
+      <div class="nav-item" onclick="navigate('appointments')" data-page="appointments">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Rendez-vous
+        <span id="apt-badge" style="margin-left:auto;background:rgba(255,255,255,0.2);border-radius:99px;padding:1px 8px;font-size:.72rem;">5</span>
+      </div>
+      <div class="nav-item" onclick="navigate('classification')" data-page="classification">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Classification ML
+      </div>
+      <div class="nav-item" onclick="navigate('clients')" data-page="clients">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Profils clients
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="agent-card">
+        <div class="agent-avatar" id="agent-initial">A</div>
+        <div class="agent-info">
+          <p id="agent-name-display">Agent</p>
+          <span>Agent bancaire</span>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Déconnexion
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main id="main">
+    <div id="content">
+
+      <!-- ── HOME ── -->
+      <section id="page-home">
+        <div class="page-header">
+          <h1>Tableau de bord</h1>
+          <p>Vue d'ensemble de votre activité en temps réel</p>
+        </div>
+        <div class="stats-grid">
+          <div class="card stat-card" onclick="navigate('registrations')" style="cursor:pointer">
+            <div class="stat-icon-wrap" style="background:#dbeafe">
+              <svg width="22" height="22" fill="none" stroke="#2563eb" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            </div>
+            <div class="stat-val" id="stat-reg">3</div>
+            <div class="stat-label">Demandes d'inscription</div>
+          </div>
+          <div class="card stat-card" onclick="navigate('appointments')" style="cursor:pointer">
+            <div class="stat-icon-wrap" style="background:#ede9fe">
+              <svg width="22" height="22" fill="none" stroke="#7c3aed" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div class="stat-val" id="stat-apt">5</div>
+            <div class="stat-label">Rendez-vous en attente</div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-icon-wrap" style="background:var(--green-100)">
+              <svg width="22" height="22" fill="none" stroke="var(--green-700)" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+            </div>
+            <div class="stat-val">1 247</div>
+            <div class="stat-label">Clients actifs</div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-icon-wrap" style="background:var(--amber-100)">
+              <svg width="22" height="22" fill="none" stroke="#92400e" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <div class="stat-val">342</div>
+            <div class="stat-label">Clients fidèles</div>
+          </div>
+        </div>
+        <div class="card card-body">
+          <div class="section-title">
+            <svg width="18" height="18" fill="none" stroke="var(--green-600)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Activité récente
+          </div>
+          <div id="activity-list"></div>
+        </div>
+      </section>
+
+      <!-- ── REGISTRATIONS ── -->
+      <section id="page-registrations" class="hidden">
+        <div class="page-header">
+          <h1>Demandes d'inscription</h1>
+          <p>Gérer les demandes d'ouverture de compte des nouveaux clients</p>
+        </div>
+        <div id="reg-pending-list"></div>
+        <div id="reg-processed" style="margin-top:24px;"></div>
+      </section>
+
+      <!-- ── APPOINTMENTS ── -->
+      <section id="page-appointments" class="hidden">
+        <div class="page-header">
+          <h1>Gestion des rendez-vous</h1>
+          <p>Approuver ou refuser les demandes de rendez-vous des clients</p>
+        </div>
+        <div class="section-title" style="margin-bottom:16px">
+          En attente — <span id="apt-pending-count">0</span>
+        </div>
+        <div id="apt-pending-list"></div>
+        <div id="apt-approved-section" class="hidden" style="margin-top:28px">
+          <div class="section-title" style="color:var(--green-700)">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            Rendez-vous approuvés
+          </div>
+          <div id="apt-approved-list"></div>
+        </div>
+        <div id="apt-rejected-section" class="hidden" style="margin-top:20px">
+          <div class="section-title" style="color:var(--red-600)">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Rendez-vous refusés
+          </div>
+          <div id="apt-rejected-list"></div>
+        </div>
+      </section>
+
+      <!-- ── CLASSIFICATION ── -->
+      <section id="page-classification" class="hidden">
+        <div class="page-header">
+          <h1>Classification ML des clients</h1>
+          <p>Analyse automatique basée sur le solde, les transactions et les recharges</p>
+        </div>
+        <div class="ml-stat-grid">
+          <div class="ml-stat-card card" onclick="filterML('tous')">
+            <div class="ml-stat-label" style="color:var(--gray-500)">Total clients</div>
+            <div class="ml-stat-val" style="color:var(--gray-900)" id="ml-total">7</div>
+          </div>
+          <div class="ml-stat-card" style="background:var(--green-50);border:1px solid var(--green-200)" onclick="filterML('fidèle')">
+            <div class="ml-stat-label" style="color:var(--green-700)">⭐ Clients fidèles</div>
+            <div class="ml-stat-val" style="color:var(--green-800)" id="ml-fidele">3</div>
+          </div>
+          <div class="ml-stat-card" style="background:var(--blue-50);border:1px solid var(--blue-100)" onclick="filterML('actif')">
+            <div class="ml-stat-label" style="color:var(--blue-600)">📈 Clients actifs</div>
+            <div class="ml-stat-val" style="color:var(--blue-600)" id="ml-actif">2</div>
+          </div>
+          <div class="ml-stat-card" style="background:var(--red-50);border:1px solid #fecaca" onclick="filterML('à risque')">
+            <div class="ml-stat-label" style="color:var(--red-600)">⚠️ À risque</div>
+            <div class="ml-stat-val" style="color:var(--red-600)" id="ml-risque">1</div>
+          </div>
+        </div>
+        <div class="info-box">
+          <div class="section-title" style="color:var(--blue-600);margin-bottom:10px">🤖 Critères de classification ML</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:.82rem;color:#1e40af">
+            <div><strong>Clients fidèles :</strong><br>• Solde &gt; 75 000 TND<br>• Transactions &gt; 35/mois<br>• Recharges &gt; 5/mois</div>
+            <div><strong>Clients actifs :</strong><br>• Solde 30 000–75 000 TND<br>• 15–35 transactions/mois<br>• Recharges occasionnelles</div>
+          </div>
+        </div>
+        <div class="card" style="overflow:hidden">
+          <table id="ml-table">
+            <thead>
+              <tr>
+                <th>Client</th><th>N° Compte</th><th>Solde</th>
+                <th>Transactions/mois</th><th>Recharges/mois</th>
+                <th>Score ML</th><th>Classification</th>
+              </tr>
+            </thead>
+            <tbody id="ml-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── CLIENT PROFILES ── -->
+      <section id="page-clients" class="hidden">
+        <div class="page-header">
+          <h1>Profils clients</h1>
+          <p>Consulter les informations et l'historique de tous les clients</p>
+        </div>
+        <div class="search-wrapper mb-16">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="position:absolute;left:13px;top:50%;transform:translateY(-50%)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="client-search" placeholder="Rechercher par nom, CIN ou numéro de compte…" oninput="searchClients()" style="padding-left:42px" />
+        </div>
+        <div class="profile-grid">
+          <div class="client-list" id="client-list"></div>
+          <div id="client-detail">
+            <div class="empty-state" style="padding-top:80px">
+              <svg width="52" height="52" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <p>Sélectionnez un client pour voir ses détails</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- ═══════ APPROVAL MODAL ═══════ -->
+<div class="modal-overlay" id="approval-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Configurer le compte client</h2>
+      <button class="modal-close" onclick="closeModal('approval-modal')">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="mb-20">
+        <div class="section-title mb-8">Type de compte</div>
+        <div id="account-type-options"></div>
+      </div>
+      <div class="mb-20">
+        <div class="section-title mb-8">Type de carte</div>
+        <div id="card-type-options"></div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-primary" id="confirm-approval-btn" onclick="confirmApproval()" style="flex:1;justify-content:center" disabled>
+          Confirmer l'approbation
+        </button>
+        <button class="btn btn-ghost" onclick="closeModal('approval-modal')">Annuler</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ══════════════ DATA ══════════════
+const ACCOUNT_TYPES = [
+  { name: 'Compte Courant',  desc: 'Compte pour les opérations quotidiennes avec carte de paiement et chéquier' },
+  { name: 'Compte Épargne',  desc: 'Compte d\'épargne avec intérêts annuels de 3.5%' },
+  { name: 'Compte Wadiaa',   desc: 'Compte islamique sans intérêts, conforme à la Charia' },
+];
+const CARD_TYPES = [
+  { name: 'Carte Classic',  desc: 'Carte de débit standard — idéale pour les opérations courantes' },
+  { name: 'Carte Gold',     desc: 'Carte premium avec avantages voyages et réductions partenaires' },
+  { name: 'Carte Platinum', desc: 'Carte haut de gamme avec assurances et conciergerie 24h/24' },
+];
+
+// ✅ Données chargées depuis l'API
+let registrations = [];
+
+let mlClients = [];
+let allClients = [];
+let activityLog = [];
+
+let appointments = [
+  { id:'a1', name:'Ahmed Benali',     cin:'AB123456', date:'2026-04-08', time:'10:00', reason:'Consultation pour un prêt immobilier', status:'pending' },
+  { id:'a2', name:'Fatima Zahra',     cin:'FZ789012', date:'2026-04-08', time:'14:30', reason:'Ouverture d\'un compte épargne', status:'pending' },
+  { id:'a3', name:'Khadija Mansouri', cin:'KM456789', date:'2026-04-09', time:'09:00', reason:'Modification des informations du compte', status:'pending' },
+  { id:'a4', name:'Youssef El Amrani',cin:'YE234567', date:'2026-04-09', time:'11:00', reason:'Demande de carte bancaire Gold', status:'pending' },
+  { id:'a5', name:'Nadia Bennani',    cin:'NB567890', date:'2026-04-10', time:'15:00', reason:'Consultation investissement', status:'pending' },
+];
+
+
+
+
+
+let selectedRegId = null;
+let selectedAccountType = '';
+let selectedCardType = '';
+let selectedClientId = null;
+let mlFilter = 'tous';
+
+
+// ══════════════ AUTH ══════════════
+const API_URL = 'http://localhost:5000';
+
+async function doLogin() {
+  const email = document.getElementById('login-user').value.trim();
+  const password = document.getElementById('login-pass').value;
+  const errorDiv = document.getElementById('login-error');
+
+  errorDiv.style.display = 'none';
+
+  if (!email || !password) {
+    errorDiv.textContent = 'Veuillez remplir tous les champs';
+    errorDiv.style.display = 'block';
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/api/agents/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      errorDiv.textContent = data.message || 'Erreur de connexion';
+      errorDiv.style.display = 'block';
+      return;
+    }
+
+    // Stocker le token et les infos agent
+    localStorage.setItem('wifakAgent', data.agent.fullName);
+    localStorage.setItem('wifakToken', data.token);
+    localStorage.setItem('wifakRole', data.agent.role);
+    sessionStorage.setItem('wifakToken', data.token);
+
+    document.getElementById('login-page').style.display = 'none';
+    document.getElementById('app').classList.remove('hidden');
+    document.getElementById('agent-name-display').textContent = data.agent.fullName;
+    document.getElementById('agent-initial').textContent = data.agent.prenom.charAt(0).toUpperCase();
+    initApp();
+
+  } catch (err) {
+    errorDiv.textContent = 'Impossible de contacter le serveur. Vérifiez que le backend tourne.';
+    errorDiv.style.display = 'block';
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('wifakAgent');
+  localStorage.removeItem('wifakToken');
+  localStorage.removeItem('wifakRole');
+  sessionStorage.removeItem('wifakToken');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login-page').style.display = '';
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+}
+// Check if already logged in
+window.addEventListener('DOMContentLoaded', () => {
+  const a = localStorage.getItem('wifakAgent');
+  if (a) {
+    document.getElementById('login-page').style.display = 'none';
+    document.getElementById('app').classList.remove('hidden');
+    document.getElementById('agent-name-display').textContent = a;
+    document.getElementById('agent-initial').textContent = a.charAt(0).toUpperCase();
+    initApp();
+  }
+  // Enter key on login
+  document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+  document.getElementById('login-user').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+});
+
+// ══════════════ NAVIGATION ══════════════
+function navigate(page) {
+  document.querySelectorAll('section[id^="page-"]').forEach(s => s.classList.add('hidden'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.remove('hidden');
+  document.querySelector(`[data-page="${page}"]`).classList.add('active');
+  if (page === 'registrations') renderRegistrations();
+  if (page === 'appointments')  renderAppointments();
+  if (page === 'classification') renderML();
+  if (page === 'clients') renderClientList();
+}
+// ══════════════ API HELPER ══════════════
+async function apiGet(path) {
+  const token = localStorage.getItem('wifakToken') || sessionStorage.getItem('wifakToken');
+  const res = await fetch(API_URL + path, {
+    headers: { 'Authorization': 'Bearer ' + token }
+  });
+  if (!res.ok) throw new Error('API error ' + res.status);
+  return res.json();
+}
+
+async function apiPost(path, body) {
+  const token = localStorage.getItem('wifakToken') || sessionStorage.getItem('wifakToken');
+  const res = await fetch(API_URL + path, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error('API error ' + res.status);
+  return res.json();
+}
+
+async function apiPut(path, body) {
+  const token = localStorage.getItem('wifakToken') || sessionStorage.getItem('wifakToken');
+  const res = await fetch(API_URL + path, {
+    method: 'PUT',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error('API error ' + res.status);
+  return res.json();
+}
+
+async function initApp() {
+  try {
+    // Charger toutes les données depuis l'API
+    const [clients, apts, seg, stats, regs] = await Promise.all([
+      apiGet('/api/admin/clients'),
+      apiGet('/api/admin/appointments'),
+      apiGet('/api/admin/segmentation'),
+      apiGet('/api/admin/stats'),
+      apiGet('/api/admin/registrations'),
+    ]);
+
+    allClients = clients;
+    appointments = apts;
+    mlClients = seg;
+    registrations = regs;
+
+    // Générer activityLog
+    activityLog = [
+      ...regs.slice(0, 3).map(r => ({ client: r.name, action: "Nouvelle demande d'inscription", time: fmt(r.date) })),
+      ...apts.slice(0, 2).map(a => ({ client: a.name, action: 'Rendez-vous en attente', time: fmt(a.date) })),
+    ];
+
+    // Stats dashboard
+    document.getElementById('stat-reg').textContent = regs.length;
+    document.getElementById('stat-apt').textContent = stats.pending_appointments;
+    document.getElementById('reg-badge').textContent = regs.length;
+    document.getElementById('apt-badge').textContent = stats.pending_appointments;
+
+    renderHome();
+    renderRegistrations();
+    renderAppointments();
+    renderML();
+    renderClientList();
+  } catch(err) {
+    console.error('Erreur chargement données:', err);
+    showToast('Erreur de chargement des données', 'error');
+  }
+}
+
+// ══════════════ HOME ══════════════
+function renderHome() {
+  const pending = registrations.filter(r => r.status === 'pending').length;
+  const aptPending = appointments.filter(a => a.status === 'pending').length;
+  document.getElementById('stat-reg').textContent = pending;
+  document.getElementById('stat-apt').textContent = aptPending;
+  document.getElementById('reg-badge').textContent = pending;
+  document.getElementById('apt-badge').textContent = aptPending;
+
+  const list = document.getElementById('activity-list');
+  list.innerHTML = activityLog.map(a => `
+    <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--gray-100)">
+      <div style="width:8px;height:8px;border-radius:50%;background:var(--green-500);flex-shrink:0"></div>
+      <div style="flex:1">
+        <div style="font-size:.875rem;font-weight:500;color:var(--gray-800)">${a.action}</div>
+        <div style="font-size:.78rem;color:var(--gray-400);margin-top:2px">Client : ${a.client} &nbsp;·&nbsp; ${a.time}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ══════════════ REGISTRATIONS ══════════════
+function renderRegistrations() {
+  const pending = registrations.filter(r => r.status === 'pending');
+  const processed = registrations.filter(r => r.status !== 'pending');
+  const container = document.getElementById('reg-pending-list');
+
+  if (pending.length === 0) {
+    container.innerHTML = `<div class="card"><div class="empty-state">
+      <svg width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      <p>Aucune demande en attente</p>
+    </div></div>`;
+  } else {
+    container.innerHTML = pending.map(r => `
+      <div class="card reg-card">
+        <div class="pending-tag">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          En attente
+        </div>
+        <div style="font-size:1.1rem;font-weight:700;color:var(--gray-900);margin-bottom:14px">${r.name}</div>
+        <div class="client-meta">
+          <div class="meta-field"><label>Email</label><p>${r.email}</p></div>
+          <div class="meta-field"><label>Téléphone</label><p>${r.phone}</p></div>
+          <div class="meta-field"><label>CIN</label><p>${r.cin}</p></div>
+          <div class="meta-field"><label>Date de demande</label><p>${fmt(r.date)}</p></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:4px">
+          <button class="btn btn-primary" onclick="openApprovalModal('${r.id}')">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            Approuver
+          </button>
+          <button class="btn btn-danger" onclick="rejectRegistration('${r.id}')">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Refuser
+          </button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  const pDiv = document.getElementById('reg-processed');
+  if (processed.length === 0) { pDiv.innerHTML = ''; return; }
+  pDiv.innerHTML = `<div class="section-title mb-8">Demandes traitées</div>` +
+    processed.map(r => r.status === 'approved' ? `
+      <div class="approved-row">
+        <div>
+          <strong>${r.name}</strong>
+          <div class="text-sm text-muted mt-4">${r.accountType} · ${r.cardType}</div>
+        </div>
+        <span class="badge badge-green">✓ Approuvé</span>
+      </div>
+    ` : `
+      <div class="rejected-row">
+        <div><strong>${r.name}</strong><div class="text-sm text-muted mt-4">${fmt(r.date)}</div></div>
+        <span class="badge badge-red">✗ Refusé</span>
+      </div>
+    `).join('');
+}
+
+function openApprovalModal(id) {
+  selectedRegId = id;
+  selectedAccountType = '';
+  selectedCardType = '';
+  // Render account types
+  document.getElementById('account-type-options').innerHTML = ACCOUNT_TYPES.map(a => `
+    <div class="radio-card" id="at-${a.name.replace(/ /g,'_')}" onclick="selectAccountType('${a.name}')">
+      <input type="radio" name="acct" value="${a.name}">
+      <div><div class="radio-card-title">${a.name}</div><div class="radio-card-desc">${a.desc}</div></div>
+    </div>
+  `).join('');
+  document.getElementById('card-type-options').innerHTML = CARD_TYPES.map(c => `
+    <div class="radio-card" id="ct-${c.name.replace(/ /g,'_')}" onclick="selectCardType('${c.name}')">
+      <input type="radio" name="card" value="${c.name}">
+      <div>
+        <div class="radio-card-title" style="display:flex;align-items:center;gap:7px">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          ${c.name}
+        </div>
+        <div class="radio-card-desc">${c.desc}</div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('confirm-approval-btn').disabled = true;
+  openModal('approval-modal');
+}
+
+function selectAccountType(name) {
+  selectedAccountType = name;
+  document.querySelectorAll('[id^="at-"]').forEach(el => el.classList.remove('selected'));
+  document.getElementById('at-' + name.replace(/ /g,'_')).classList.add('selected');
+  checkApprovalReady();
+}
+function selectCardType(name) {
+  selectedCardType = name;
+  document.querySelectorAll('[id^="ct-"]').forEach(el => el.classList.remove('selected'));
+  document.getElementById('ct-' + name.replace(/ /g,'_')).classList.add('selected');
+  checkApprovalReady();
+}
+function checkApprovalReady() {
+  document.getElementById('confirm-approval-btn').disabled = !(selectedAccountType && selectedCardType);
+}
+async function confirmApproval() {
+  const r = registrations.find(x => x.id == selectedRegId);
+  if (!r) return;
+  try {
+    await apiPost('/api/admin/registrations/' + selectedRegId + '/approve', { accountType: selectedAccountType });
+    registrations = registrations.filter(x => x.id != selectedRegId);
+    closeModal('approval-modal');
+    renderRegistrations();
+    renderHome();
+    showToast('✓ Compte ' + selectedAccountType + ' créé pour ' + r.name, 'success');
+  } catch(e) { showToast('Erreur lors de l\'approbation', 'error'); }
+}
+async function rejectRegistration(id) {
+  const r = registrations.find(x => x.id == id);
+  if (!r) return;
+  try {
+    await apiPost('/api/admin/registrations/' + id + '/reject', {});
+    registrations = registrations.filter(x => x.id != id);
+    renderRegistrations();
+    renderHome();
+    showToast('✗ Demande de ' + r.name + ' refusée', 'error');
+  } catch(e) { showToast('Erreur lors du refus', 'error'); }
+}
+
+// ══════════════ APPOINTMENTS ══════════════
+function renderAppointments() {
+  const pending  = appointments.filter(a => a.status === 'pending');
+  const approved = appointments.filter(a => a.status === 'approved');
+  const rejected = appointments.filter(a => a.status === 'rejected');
+  document.getElementById('apt-pending-count').textContent = pending.length;
+
+  const pList = document.getElementById('apt-pending-list');
+  if (pending.length === 0) {
+    pList.innerHTML = `<div class="card"><div class="empty-state">
+      <svg width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <p>Aucun rendez-vous en attente</p>
+    </div></div>`;
+  } else {
+    pList.innerHTML = pending.map(a => `
+      <div class="card apt-card">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <div style="width:40px;height:40px;border-radius:50%;background:var(--green-100);display:flex;align-items:center;justify-content:center">
+            <svg width="18" height="18" fill="none" stroke="var(--green-700)" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div style="font-size:1.05rem;font-weight:700;color:var(--gray-900)">${a.name}</div>
+        </div>
+        <div class="apt-meta">
+          <div>
+            <div class="text-sm text-muted">📅 Date</div>
+            <div style="font-size:.875rem;font-weight:600;margin-top:3px">${fmtLong(a.date)}</div>
+          </div>
+          <div>
+            <div class="text-sm text-muted">🕐 Heure</div>
+            <div style="font-size:.875rem;font-weight:600;margin-top:3px">${a.time}</div>
+          </div>
+          <div>
+            <div class="text-sm text-muted">📞 Téléphone</div>
+            <div style="font-size:.875rem;font-weight:600;margin-top:3px">${a.phone || '—'}</div>
+          </div>
+        </div>
+        <div style="margin-bottom:16px">
+          <div class="text-sm text-muted mb-4">Motif</div>
+          <div style="font-size:.875rem;color:var(--gray-700)">${a.reason}</div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-primary" onclick="approveAppointment('${a.id}')">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            Approuver
+          </button>
+          <button class="btn btn-danger" onclick="rejectAppointment('${a.id}')">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Refuser
+          </button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  const apSec = document.getElementById('apt-approved-section');
+  const apList = document.getElementById('apt-approved-list');
+  if (approved.length > 0) {
+    apSec.classList.remove('hidden');
+    apList.innerHTML = approved.map(a => `
+      <div class="approved-row">
+        <div>
+          <strong>${a.name}</strong>
+          <div class="text-sm text-muted mt-4">${fmt(a.date)} à ${a.time} — ${a.reason}</div>
+          ${a.conseiller && a.conseiller !== 'À assigner' ? `<div style="font-size:.78rem;color:var(--green-600);margin-top:4px;font-weight:600">👤 ${a.conseiller}</div>` : ''}
+        </div>
+        <span class="badge badge-green">✓ Confirmé</span>
+      </div>
+    `).join('');
+  } else { apSec.classList.add('hidden'); }
+
+  const rjSec = document.getElementById('apt-rejected-section');
+  const rjList = document.getElementById('apt-rejected-list');
+  if (rejected.length > 0) {
+    rjSec.classList.remove('hidden');
+    rjList.innerHTML = rejected.map(a => `
+      <div class="rejected-row">
+        <div><strong>${a.name}</strong><div class="text-sm text-muted mt-4">${fmt(a.date)} à ${a.time}</div></div>
+        <span class="badge badge-red">✗ Refusé</span>
+      </div>
+    `).join('');
+  } else { rjSec.classList.add('hidden'); }
+}
+// ── RDV : ouvrir modal de confirmation avec sélection conseiller ──
+let selectedRdvId = null;
+let selectedConseiller = '';
+
+async function approveAppointment(id) {
+  selectedRdvId = id;
+  selectedConseiller = '';
+
+  // Charger les suggestions de conseillers pour ce RDV
+  try {
+    const data = await apiGet('/api/admin/appointments/' + id + '/suggestions');
+    const suggestions = data.suggestions || [];
+    const motif = data.motif || '';
+
+    document.getElementById('rdv-motif-display').textContent = motif;
+    document.getElementById('rdv-conseiller-options').innerHTML = suggestions.map(c => `
+      <div class="radio-card" id="rc-${c.replace(/ /g,'_')}" onclick="selectConseiller('${c}')">
+        <input type="radio" name="cons" value="${c}">
+        <div>
+          <div class="radio-card-title">${c}</div>
+          <div class="radio-card-desc">${getRoleLabel(c)}</div>
+        </div>
+      </div>
+    `).join('');
+
+    document.getElementById('confirm-rdv-btn').disabled = true;
+    openModal('rdv-approval-modal');
+  } catch(e) {
+    showToast('Erreur chargement suggestions', 'error');
+  }
+}
+
+function getRoleLabel(name) {
+  if (name === 'Mokthar Brahem' || name === 'Sirine Fantar') return 'Chargé(e) de Clientèle';
+  if (name === 'Jihen Charfi') return "Guichet d'accueil";
+  if (name === 'Sirine Memmi') return 'Responsable Guichet';
+  return 'Agent Wifak Bank';
+}
+
+function selectConseiller(name) {
+  selectedConseiller = name;
+  document.querySelectorAll('[id^="rc-"]').forEach(el => el.classList.remove('selected'));
+  document.getElementById('rc-' + name.replace(/ /g,'_')).classList.add('selected');
+  document.getElementById('confirm-rdv-btn').disabled = false;
+}
+
+async function confirmRdvApproval() {
+  if (!selectedConseiller || !selectedRdvId) return;
+  try {
+    await apiPut('/api/admin/appointments/' + selectedRdvId, {
+      status: 'confirmed',
+      conseiller: selectedConseiller
+    });
+    const a = appointments.find(x => x.id == selectedRdvId);
+    if (a) { a.status = 'confirmed'; a.conseiller = selectedConseiller; }
+    closeModal('rdv-approval-modal');
+    renderAppointments(); renderHome();
+    showToast('✓ RDV confirmé avec ' + selectedConseiller, 'success');
+  } catch(e) { showToast('Erreur lors de la confirmation', 'error'); }
+}
+
+async function rejectAppointment(id) {
+  try {
+    await apiPut('/api/admin/appointments/' + id, { status: 'cancelled' });
+    const a = appointments.find(x => x.id == id);
+    if (a) a.status = 'cancelled';
+    renderAppointments(); renderHome();
+    showToast('✗ Rendez-vous refusé', 'error');
+  } catch(e) { showToast('Erreur lors du refus', 'error'); }
+}
+
+// ══════════════ ML CLASSIFICATION ══════════════
+function filterML(cat) { mlFilter = cat; renderML(); }
+function renderML() {
+  const clsBadge = { 'fidèle':'badge-green', 'actif':'badge-blue', 'inactif':'badge-gray', 'à risque':'badge-red' };
+  const clsLabel = { 'fidèle':'⭐ Fidèle', 'actif':'📈 Actif', 'inactif':'😴 Inactif', 'à risque':'⚠️ À risque' };
+  const filtered = mlFilter === 'tous' ? mlClients : mlClients.filter(c => c.cls === mlFilter);
+  const tbody = document.getElementById('ml-tbody');
+  tbody.innerHTML = filtered.map(c => `
+    <tr>
+      <td><div style="font-weight:600;color:var(--gray-900)">${c.name}</div></td>
+      <td style="font-family:monospace;font-size:.82rem">${c.acc || '—'}</td>
+      <td style="font-weight:600">${c.balance.toLocaleString('fr-TN')} TND</td>
+      <td>${c.txn}</td>
+      <td>—</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="progress-bar" style="width:70px"><div class="progress-fill" style="width:${c.score}%"></div></div>
+          <span style="font-size:.82rem;font-weight:600;color:var(--gray-700)">${c.score}</span>
+        </div>
+      </td>
+      <td><span class="badge ${clsBadge[c.cls]}">${clsLabel[c.cls]}</span></td>
+    </tr>
+  `).join('');
+}
+
+// ══════════════ CLIENT PROFILES ══════════════
+function renderClientList() {
+  const list = document.getElementById('client-list');
+  list.innerHTML = allClients.map(c => `
+    <div class="client-list-item ${selectedClientId === c.id ? 'selected' : ''}" onclick="selectClient('${c.id}')">
+      <div class="client-avatar">${c.name.charAt(0)}</div>
+      <div>
+        <div class="client-name">${c.name}</div>
+        <div class="client-cin">${c.email || ''}</div>
+        <div style="font-size:.75rem;color:var(--green-600);margin-top:2px;font-weight:600">${c.accounts.length} compte${c.accounts.length>1?'s':''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+function searchClients() {
+  const q = document.getElementById('client-search').value.toLowerCase();
+  const list = document.getElementById('client-list');
+  const filtered = allClients.filter(c =>
+    c.name.toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q) ||
+    c.accounts.some(a => (a.num||'').includes(q))
+  );
+  list.innerHTML = filtered.map(c => `
+    <div class="client-list-item ${selectedClientId === c.id ? 'selected' : ''}" onclick="selectClient('${c.id}')">
+      <div class="client-avatar">${c.name.charAt(0)}</div>
+      <div>
+        <div class="client-name">${c.name}</div>
+        <div class="client-cin">${c.email || ''}</div>
+        <div style="font-size:.75rem;color:var(--green-600);margin-top:2px;font-weight:600">${c.accounts.length} compte${c.accounts.length>1?'s':''}</div>
+      </div>
+    </div>
+  `).join('') || `<div class="text-muted text-sm" style="padding:16px">Aucun client trouvé</div>`;
+}
+function selectClient(id) {
+  selectedClientId = id;
+  renderClientList();
+  const c = allClients.find(x => x.id == id);
+  if (!c) return;
+  document.getElementById('client-detail').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <!-- Personal Info -->
+      <div class="card card-body">
+        <div class="section-title mb-16">
+          <svg width="18" height="18" fill="none" stroke="var(--green-600)" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Informations personnelles
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div><div class="text-sm text-muted">Nom complet</div><div class="fw-600 mt-4">${c.name}</div></div>
+          <div><div class="text-sm text-muted">CIN</div><div class="fw-600 mt-4">${c.cin}</div></div>
+          <div><div class="text-sm text-muted">✉ Email</div><div class="fw-600 mt-4">${c.email}</div></div>
+          <div><div class="text-sm text-muted">📞 Téléphone</div><div class="fw-600 mt-4">${c.phone}</div></div>
+        </div>
+      </div>
+      <!-- Accounts -->
+      <div class="card card-body">
+        <div class="section-title mb-16">
+          <svg width="18" height="18" fill="none" stroke="var(--green-600)" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          Comptes bancaires
+        </div>
+        ${c.accounts.map(a => `
+          <div class="account-card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+              <div>
+                <div style="font-size:1rem;font-weight:700;color:var(--gray-900)">${a.type}</div>
+                <div style="font-size:.78rem;font-family:monospace;color:var(--gray-500);margin-top:2px">${a.num}</div>
+              </div>
+              <div style="font-size:1.4rem;font-weight:700;color:var(--green-700)">${a.balance.toLocaleString('fr-TN')} TND</div>
+            </div>
+            <div style="display:flex;gap:20px">
+              <div><div class="text-sm text-muted">Carte</div><div class="fw-600 mt-4 text-sm">${a.card}</div></div>
+              <div><div class="text-sm text-muted">Ouvert le</div><div class="fw-600 mt-4 text-sm">${fmt(a.opened)}</div></div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <!-- Transactions -->
+      <div class="card card-body">
+        <div class="section-title mb-8">
+          <svg width="18" height="18" fill="none" stroke="var(--green-600)" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Historique des transactions
+        </div>
+        ${c.txns.map(t => `
+          <div class="txn-item">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div class="txn-icon" style="background:${t.type==='credit'?'var(--green-100)':'var(--red-100)'}">
+                ${t.type==='credit'
+                  ? `<svg width="16" height="16" fill="none" stroke="var(--green-600)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>`
+                  : `<svg width="16" height="16" fill="none" stroke="var(--red-600)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>`
+                }
+              </div>
+              <div>
+                <div style="font-size:.875rem;font-weight:500;color:var(--gray-800)">${t.desc}</div>
+                <div style="font-size:.75rem;color:var(--gray-400);margin-top:2px">${fmt(t.date)} &nbsp;·&nbsp; ${t.acc}</div>
+              </div>
+            </div>
+            <div class="txn-amount ${t.type}">${t.type==='credit'?'+':'-'}${t.amount.toLocaleString('fr-TN')} TND</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ══════════════ MODAL ══════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('open');
+});
+
+// ══════════════ TOAST ══════════════
+let toastTimer;
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (type ? ' toast-' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = '', 3000);
+}
+
+// ══════════════ UTILS ══════════════
+function fmt(d) { return new Date(d).toLocaleDateString('fr-FR'); }
+function fmtLong(d) {
+  return new Date(d).toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
+</script>
+
+<!-- ══ MODAL CONFIRMATION RDV ══ -->
+<div class="modal-overlay" id="rdv-approval-modal">
+  <div class="modal-card" style="max-width:500px">
+    <div class="modal-header">
+      <h3 class="modal-title">Confirmer le rendez-vous</h3>
+      <button class="modal-close" onclick="closeModal('rdv-approval-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--blue-50);border-radius:8px;padding:12px;margin-bottom:16px">
+        <div style="font-size:.8rem;color:var(--gray-500);margin-bottom:4px">Motif du rendez-vous</div>
+        <div style="font-weight:600;color:var(--gray-900)" id="rdv-motif-display"></div>
+      </div>
+      <div style="font-size:.9rem;font-weight:600;color:var(--gray-700);margin-bottom:12px">
+        Assigner à un conseiller :
+      </div>
+      <div id="rdv-conseiller-options" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('rdv-approval-modal')">Annuler</button>
+      <button class="btn btn-primary" id="confirm-rdv-btn" onclick="confirmRdvApproval()" disabled>
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        Confirmer le RDV
+      </button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
