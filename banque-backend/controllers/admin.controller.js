@@ -135,6 +135,7 @@ exports.getAllAppointments = async (req, res) => {
       reason: r.reason,
       status: r.status || 'pending',
       agence: r.agence,
+      conseiller: r.conseiller,
     }));
 
     res.json(rdvs);
@@ -308,6 +309,37 @@ exports.rejectRegistration = async (req, res) => {
     res.json({ message: "Inscription refusée ✅" });
   } catch (err) {
     console.error("Erreur rejectRegistration ❌", err);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+// ─── SUGGESTIONS CONSEILLER POUR UN RDV ──────────────────────────────────────
+
+exports.getConseillerSuggestions = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await db.query(
+      `SELECT reason FROM appointments WHERE id = $1`, [id]
+    );
+    if (!result.rows.length) return res.status(404).json({ message: "RDV introuvable" });
+
+    const motif = result.rows[0].reason || "";
+    const m = motif.toLowerCase();
+
+    let suggestions;
+    if (m.includes("crédit") || m.includes("credit") || m.includes("prêt") || m.includes("pret") || m.includes("immobilier") || m.includes("financement")) {
+      suggestions = ["Mokthar Brahem", "Sirine Fantar"];
+    } else if (m.includes("ouverture") || m.includes("compte") || m.includes("carte")) {
+      suggestions = ["Jihen Charfi"];
+    } else if (m.includes("conseil") || m.includes("information") || m.includes("renseignement")) {
+      suggestions = ["Sirine Memmi"];
+    } else {
+      suggestions = ["Mokthar Brahem", "Sirine Fantar", "Jihen Charfi", "Sirine Memmi"];
+    }
+
+    res.json({ motif, suggestions });
+  } catch (err) {
+    console.error("Erreur getConseillerSuggestions ❌", err);
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
