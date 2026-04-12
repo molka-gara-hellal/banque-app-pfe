@@ -1,8 +1,5 @@
 require("dotenv").config();
 
-// Tout en haut de server.js, première ligne
-console.log("ENV CHECK:", process.env.GEMINI_API_KEY, process.env.ANTHROPIC_API_KEY);
-
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -10,18 +7,9 @@ const morgan = require("morgan");
 
 const app = express();
 
-// ✅ Sécurité
 app.use(helmet());
-
-// ✅ Logs
 app.use(morgan("dev"));
-
-// ✅ CORS (autoriser ton front)
-app.use(cors({
-  origin: "*", // ⚠️ change en prod
-}));
-
-// ✅ Body parsing
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -32,14 +20,15 @@ const transactionRoutes = require("./routes/transaction.routes");
 const appointmentRoutes = require("./routes/appointment.routes");
 const adminRoutes = require("./routes/admin.routes");
 const assistantRoutes = require("./routes/assistant.routes");
+const agentRoutes = require("./routes/agent.routes");
 
-// API routes
 app.use("/api/admin", adminRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/accounts", accountRoutes);
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/assistant", assistantRoutes);
+app.use("/api/agents", agentRoutes);  // ✅ ici
 
 // ================= TEST =================
 app.get("/", (req, res) => {
@@ -62,7 +51,6 @@ app.use((err, req, res, next) => {
 
 // ================= START =================
 const PORT = process.env.PORT || 5000;
-
 app.listen(PORT, () => {
   console.log(`🚀 Serveur lancé sur http://localhost:${PORT}`);
 });
