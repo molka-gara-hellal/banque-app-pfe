@@ -1,24 +1,34 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
-
-const NOTIF_SETTINGS = [
-  { key: "transactions", label: "Transactions", desc: "Alertes pour chaque transaction" },
-  { key: "virements", label: "Virements", desc: "Confirmation de virements" },
-  { key: "rdv", label: "Rendez-vous", desc: "Rappels de rendez-vous" },
-  { key: "promo", label: "Offres & Promotions", desc: "Nouvelles offres Wifak Bank" },
-  { key: "securite", label: "Sécurité", desc: "Alertes de connexion inhabituelle" },
-];
+import { useLanguage } from "../../../i18n/LanguageContext";
 
 export default function NotificationsSettings() {
   const router = useRouter();
-  const [settings, setSettings] = useState({ transactions: true, virements: true, rdv: true, promo: false, securite: true });
+  const { t } = useLanguage();
+  const [settings, setSettings] = useState({
+    transactions: true,
+    virements: true,
+    rdv: true,
+    promo: false,
+    securite: true,
+  });
+
+  const NOTIF_SETTINGS = [
+    { key: "transactions", label: t("notifications.transactions"), desc: t("notifications.transactionsDesc") },
+    { key: "virements",    label: t("notifications.transfers"),    desc: t("notifications.transfersDesc") },
+    { key: "rdv",          label: t("notifications.appointments"), desc: t("notifications.appointmentsDesc") },
+    { key: "promo",        label: t("notifications.promotions"),   desc: t("notifications.promotionsDesc") },
+    { key: "securite",     label: t("notifications.security"),     desc: t("notifications.securityDesc") },
+  ];
 
   return (
     <View style={s.root}>
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}><Text style={s.backArrow}>←</Text></TouchableOpacity>
-        <Text style={s.title}>Notifications</Text>
+        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+          <Text style={s.backArrow}>←</Text>
+        </TouchableOpacity>
+        <Text style={s.title}>{t("notifications.title")}</Text>
         <View style={{ width: 40 }} />
       </View>
       <ScrollView contentContainerStyle={s.content}>
@@ -41,7 +51,9 @@ export default function NotificationsSettings() {
             </View>
           ))}
         </View>
-        <TouchableOpacity style={s.saveBtn}><Text style={s.saveBtnText}>Enregistrer les préférences</Text></TouchableOpacity>
+        <TouchableOpacity style={s.saveBtn}>
+          <Text style={s.saveBtnText}>{t("notifications.save")}</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );

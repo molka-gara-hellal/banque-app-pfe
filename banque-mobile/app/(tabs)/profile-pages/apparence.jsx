@@ -1,57 +1,67 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-
-const THEMES = [
-  { key: "light", label: "Clair", icon: "☀️" },
-  { key: "dark", label: "Sombre", icon: "🌙" },
-  { key: "auto", label: "Automatique", icon: "⚡" },
-];
-const FONT_SIZES = ["Petit", "Moyen", "Grand"];
+import { useLanguage } from "../../../i18n/LanguageContext";
 
 export default function ApparenceSettings() {
   const router = useRouter();
+  const { t, langue } = useLanguage();
   const [theme, setTheme] = useState("light");
-  const [fontSize, setFontSize] = useState("Moyen");
+  const [fontSize, setFontSize] = useState("medium");
+
+  const THEMES = [
+    { key: "light",  label: t("appearance.light"),  icon: "☀️" },
+    { key: "dark",   label: t("appearance.dark"),   icon: "🌙" },
+    { key: "system", label: t("appearance.system"), icon: "⚡" },
+  ];
+
+  const FONT_SIZES = [
+    { key: "small",  label: { fr: "Petit",  ar: "صغير",  en: "Small"  } },
+    { key: "medium", label: { fr: "Moyen",  ar: "متوسط", en: "Medium" } },
+    { key: "large",  label: { fr: "Grand",  ar: "كبير",  en: "Large"  } },
+  ];
 
   return (
     <View style={s.root}>
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}><Text style={s.backArrow}>←</Text></TouchableOpacity>
-        <Text style={s.title}>Apparence</Text>
+        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+          <Text style={s.backArrow}>←</Text>
+        </TouchableOpacity>
+        <Text style={s.title}>{t("appearance.title")}</Text>
         <View style={{ width: 40 }} />
       </View>
       <ScrollView contentContainerStyle={s.content}>
-        <Text style={s.sectionLabel}>Thème</Text>
+        <Text style={s.sectionLabel}>{t("appearance.chooseTheme")}</Text>
         <View style={s.themeRow}>
-          {THEMES.map(t => (
+          {THEMES.map(th => (
             <TouchableOpacity
-              key={t.key}
-              style={[s.themeCard, theme === t.key && s.themeCardActive]}
-              onPress={() => setTheme(t.key)}
+              key={th.key}
+              style={[s.themeCard, theme === th.key && s.themeCardActive]}
+              onPress={() => setTheme(th.key)}
             >
-              <Text style={s.themeIcon}>{t.icon}</Text>
-              <Text style={[s.themeLabel, theme === t.key && s.themeLabelActive]}>{t.label}</Text>
+              <Text style={s.themeIcon}>{th.icon}</Text>
+              <Text style={[s.themeLabel, theme === th.key && s.themeLabelActive]}>{th.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        <Text style={s.sectionLabel}>Taille du texte</Text>
         <View style={s.card}>
           {FONT_SIZES.map((f, i) => (
-            <View key={f}>
-              {i > 0 && <View style={s.divider} />}
-              <TouchableOpacity style={s.row} onPress={() => setFontSize(f)}>
-                <Text style={s.rowLabel}>{f}</Text>
-                <View style={[s.radio, fontSize === f && s.radioActive]}>
-                  {fontSize === f && <View style={s.radioDot} />}
-                </View>
-              </TouchableOpacity>
-            </View>
+              <View key={f.key}>
+                {i > 0 && <View style={s.divider} />}
+                <TouchableOpacity style={s.row} onPress={() => setFontSize(f.key)}>
+                  <Text style={s.rowLabel}>{f.label[langue] || f.label.fr}</Text>
+                  <View style={[s.radio, fontSize === f.key && s.radioActive]}>
+                    {fontSize === f.key && <View style={s.radioDot} />}
+                  </View>
+                </TouchableOpacity>
+              </View>
           ))}
         </View>
 
-        <TouchableOpacity style={s.saveBtn}><Text style={s.saveBtnText}>Appliquer</Text></TouchableOpacity>
+        <TouchableOpacity style={s.saveBtn}>
+          <Text style={s.saveBtnText}>{t("appearance.apply")}</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );

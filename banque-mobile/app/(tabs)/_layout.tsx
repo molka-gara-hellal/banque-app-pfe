@@ -1,13 +1,6 @@
 import { Slot, useRouter, useSegments } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-
-const TABS = [
-  { name: "dashboard", label: "Accueil",      icon: "🏠" },
-  { name: "comptes",   label: "Comptes",       icon: "💳" },
-  { name: "rdv",       label: "Rendez-vous",   icon: "📅" },
-  { name: "assistant", label: "Assistant",     icon: "💬" },
-  { name: "profil",    label: "Profil",        icon: "👤" },
-];
+import { useLanguage } from "../../i18n/LanguageContext";
 
 // Pages sans barre de navigation
 const HIDDEN_TABS = [
@@ -25,8 +18,17 @@ const HIDDEN_TABS = [
 export default function TabsLayout() {
   const router = useRouter();
   const segments = useSegments();
+  const { t } = useLanguage();
   const currentTab = segments[segments.length - 1];
   const showBar = !HIDDEN_TABS.includes(currentTab);
+
+  const TABS = [
+    { name: "dashboard", label: t("tabs.home"),         icon: "🏠" },
+    { name: "comptes",   label: t("tabs.accounts"),     icon: "💳" },
+    { name: "rdv",       label: t("tabs.appointments"), icon: "📅" },
+    { name: "assistant", label: t("tabs.assistant"),    icon: "💬" },
+    { name: "profil",    label: t("tabs.profile"),      icon: "👤" },
+  ];
 
   return (
     <View style={{ flex: 1, backgroundColor: "#F2F4F8" }}>

@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useLanguage } from "../../../i18n/LanguageContext";
 
 const LANGUES = [
   { code: "fr", label: "Français", flag: "🇫🇷" },
@@ -10,17 +11,27 @@ const LANGUES = [
 
 export default function LangueSettings() {
   const router = useRouter();
-  const [selected, setSelected] = useState("fr");
+  const { langue, setLangue, t } = useLanguage();
+  const [selected, setSelected] = useState(langue);
+
+  const handleApply = async () => {
+    await setLangue(selected);
+    router.back();
+  };
 
   return (
     <View style={s.root}>
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}><Text style={s.backArrow}>←</Text></TouchableOpacity>
-        <Text style={s.title}>Langue</Text>
+        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+          <Text style={s.backArrow}>←</Text>
+        </TouchableOpacity>
+        <Text style={s.title}>{t("language.title")}</Text>
         <View style={{ width: 40 }} />
       </View>
+
       <ScrollView contentContainerStyle={s.content}>
-        <Text style={s.sectionLabel}>Choisir la langue de l'application</Text>
+        <Text style={s.sectionLabel}>{t("language.chooseLanguage")}</Text>
+
         <View style={s.card}>
           {LANGUES.map((l, i) => (
             <View key={l.code}>
@@ -35,7 +46,10 @@ export default function LangueSettings() {
             </View>
           ))}
         </View>
-        <TouchableOpacity style={s.saveBtn}><Text style={s.saveBtnText}>Appliquer</Text></TouchableOpacity>
+
+        <TouchableOpacity style={s.saveBtn} onPress={handleApply}>
+          <Text style={s.saveBtnText}>{t("apply")}</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );

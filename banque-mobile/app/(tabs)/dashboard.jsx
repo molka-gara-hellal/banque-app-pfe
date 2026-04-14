@@ -7,10 +7,10 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useLanguage } from "../../i18n/LanguageContext";
 import api from "../../servives/api";
 import { getUser, removeToken } from "../../store/authStore";
 
@@ -35,6 +35,7 @@ const fmtDate = (d) => {
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [user, setUser]               = useState(null);
   const [account, setAccount]         = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -73,23 +74,35 @@ export default function DashboardScreen() {
   const initiale = prenom.charAt(0).toUpperCase();
   const balance = parseFloat(account?.balance ?? 0);
   const accountNum = account?.iban || account?.account_number || "0000000000";
-  const revenus = transactions.filter(t => parseFloat(t.amount) > 0).reduce((s, t) => s + parseFloat(t.amount), 0);
-  const depenses = transactions.filter(t => parseFloat(t.amount) < 0).reduce((s, t) => s + parseFloat(t.amount), 0);
+  const revenus  = transactions.filter(tx => parseFloat(tx.amount) > 0).reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
+  const depenses = transactions.filter(tx => parseFloat(tx.amount) < 0).reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
 
   const quickActions = [
-    { icon: "↗", label: "Virement",    onPress: () => router.push("/(tabs)/virement") },
-    { icon: "🕐", label: "Historique", onPress: () => router.push("/(tabs)/transactions") },
-    { icon: "📅", label: "Rendez-vous",onPress: () => router.push("/(tabs)/rdv") },
-    { icon: "💬", label: "Assistant",  onPress: () => router.push("/(tabs)/assistant") },
+    { icon: "↗", label: t("actions.transfer"),     onPress: () => router.push("/(tabs)/virement") },
+    { icon: "🕐", label: t("actions.history"),      onPress: () => router.push("/(tabs)/transactions") },
+    { icon: "📅", label: t("actions.appointments"), onPress: () => router.push("/(tabs)/rdv") },
+    { icon: "💬", label: t("actions.assistant"),    onPress: () => router.push("/(tabs)/assistant") },
+  ];
+
+  const NOTIFS = [
+    { icon: "✅", text: t("dashboard.notif1"), time: t("dashboard.notif1time"), bg: "#EDFFF2" },
+    { icon: "🔔", text: t("dashboard.notif2"), time: t("dashboard.notif2time"), bg: "#EBF5FF" },
+    { icon: "⚠️", text: t("dashboard.notif3"), time: t("dashboard.notif3time"), bg: "#FFF5E6" },
+  ];
+
+  const SETTINGS_ITEMS = [
+    { icon: "👤", label: t("dashboard.myProfile"),  onPress: () => { setShowSettings(false); router.push("/(tabs)/profil"); } },
+    { icon: "💳", label: t("dashboard.myAccounts"), onPress: () => { setShowSettings(false); router.push("/(tabs)/comptes"); } },
+    { icon: "⏻",  label: t("logout"),               onPress: () => { setShowSettings(false); handleLogout(); }, red: true },
   ];
 
   return (
     <View style={s.root}>
-      {/* ── HEADER BLANC ── */}
+      {/* ── HEADER ── */}
       <View style={s.headerWhite}>
         <View style={s.headerLeft}>
           <Image source={require("../../assets/images/wifak-logo.png")} style={s.headerLogo} />
-          <Text style={s.headerBrand}>Wifak Bank</Text>
+          <Text style={s.headerBrand}>{t("appName")}</Text>
         </View>
         <View style={s.headerRight}>
           <TouchableOpacity style={s.iconBtn} onPress={() => setShowNotifs(true)}>
@@ -102,32 +115,32 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      {/* ── SECTION UTILISATEUR ── */}
+      {/* ── UTILISATEUR ── */}
       <View style={s.userSection}>
         <View style={s.avatar}><Text style={s.avatarText}>{initiale}</Text></View>
         <View>
-          <Text style={s.greetSmall}>Bonjour,</Text>
+          <Text style={s.greetSmall}>{t("dashboard.hello")}</Text>
           <Text style={s.greetName}>{fullName}</Text>
         </View>
       </View>
 
       <ScrollView style={s.scroll} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
-        {/* ── CARTE BANCAIRE ── */}
+        {/* ── CARTE ── */}
         <View style={s.card}>
           <View style={s.cardCircle1} /><View style={s.cardCircle2} />
           <View style={s.cardTopRow}>
-            <Text style={s.cardType}>{(account?.account_type || "COMPTE COURANT").toUpperCase()}</Text>
+            <Text style={s.cardType}>{(account?.account_type || t("dashboard.currentAccount")).toUpperCase()}</Text>
             <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 20 }}>◎</Text>
           </View>
           <Text style={s.cardNum}>**** **** **** {accountNum.slice(-4)}</Text>
-          <Text style={s.cardBalLabel}>SOLDE DISPONIBLE</Text>
+          <Text style={s.cardBalLabel}>{t("dashboard.availableBalance")}</Text>
           <Text style={s.cardBal}>
             {balance.toLocaleString("fr-TN", { minimumFractionDigits: 2 })}
             <Text style={s.cardCur}> TND</Text>
           </Text>
           <View style={s.cardBottom}>
             <Text style={s.cardIban}>TN59 ******* ******* {accountNum.slice(-4)}</Text>
-            <Text style={s.cardExpire}>EXPIRE 12/28</Text>
+            <Text style={s.cardExpire}>{t("dashboard.expires")}</Text>
           </View>
         </View>
 
@@ -141,16 +154,16 @@ export default function DashboardScreen() {
           ))}
         </View>
 
-        {/* ── RÉSUMÉ FINANCIER ── */}
+        {/* ── RÉSUMÉ ── */}
         <View style={s.sectionHeader}>
-          <Text style={s.sectionTitle}>Résumé Financier</Text>
-          <TouchableOpacity><Text style={s.sectionLink}>Détails</Text></TouchableOpacity>
+          <Text style={s.sectionTitle}>{t("dashboard.financialSummary")}</Text>
+          <TouchableOpacity><Text style={s.sectionLink}>{t("dashboard.details")}</Text></TouchableOpacity>
         </View>
         <View style={s.summaryRow}>
           <View style={[s.summaryCard, { marginRight: 6 }]}>
-            <Text style={s.summaryLabel}>Revenus</Text>
+            <Text style={s.summaryLabel}>{t("dashboard.income")}</Text>
             <Text style={[s.summaryAmt, { color: "#34C759" }]}>+{revenus.toLocaleString("fr-TN", { minimumFractionDigits: 2 })} TND</Text>
-            <Text style={[s.summaryTrend, { color: "#34C759" }]}>↗ 12% ce mois</Text>
+            <Text style={[s.summaryTrend, { color: "#34C759" }]}>{t("dashboard.incomeTrend")}</Text>
             <View style={s.miniBarRow}>
               {[40,55,45,60,70].map((h,i) => (
                 <View key={i} style={[s.miniBar, { height: h * 0.32, backgroundColor: i===4 ? "#34C759" : "#e5e7eb" }]} />
@@ -158,9 +171,9 @@ export default function DashboardScreen() {
             </View>
           </View>
           <View style={[s.summaryCard, { marginLeft: 6 }]}>
-            <Text style={s.summaryLabel}>Dépenses</Text>
+            <Text style={s.summaryLabel}>{t("dashboard.expenses")}</Text>
             <Text style={[s.summaryAmt, { color: "#FF3B30" }]}>{depenses.toLocaleString("fr-TN", { minimumFractionDigits: 2 })} TND</Text>
-            <Text style={[s.summaryTrend, { color: "#FF3B30" }]}>↘ 8% vs hier</Text>
+            <Text style={[s.summaryTrend, { color: "#FF3B30" }]}>{t("dashboard.expensesTrend")}</Text>
             <View style={s.miniBarRow}>
               {[50,70,45,85,60].map((h,i) => (
                 <View key={i} style={[s.miniBar, { height: h * 0.32, backgroundColor: i===3 ? "#FF3B30" : "#e5e7eb" }]} />
@@ -169,17 +182,17 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* ── TRANSACTIONS RÉCENTES ── */}
+        {/* ── TRANSACTIONS ── */}
         <View style={s.sectionHeader}>
-          <Text style={s.sectionTitle}>Transactions Récentes</Text>
+          <Text style={s.sectionTitle}>{t("dashboard.recentTransactions")}</Text>
           <TouchableOpacity onPress={() => router.push("/(tabs)/transactions")}>
-            <Text style={s.sectionLink}>Tout voir</Text>
+            <Text style={s.sectionLink}>{t("dashboard.viewAll")}</Text>
           </TouchableOpacity>
         </View>
         {transactions.length === 0 ? (
-          <View style={s.emptyBox}><Text style={s.emptyText}>Aucune transaction récente</Text></View>
+          <View style={s.emptyBox}><Text style={s.emptyText}>{t("dashboard.noTransactions")}</Text></View>
         ) : transactions.map((tx, i) => {
-          const label = tx.label || tx.description || tx.type || "Transaction";
+          const label = tx.label || tx.description || tx.type || t("dashboard.transaction");
           const cat = getCat(label);
           const amt = parseFloat(tx.amount);
           return (
@@ -205,14 +218,10 @@ export default function DashboardScreen() {
         <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={() => setShowNotifs(false)}>
           <View style={s.notifPanel}>
             <View style={s.panelHeader}>
-              <Text style={s.panelTitle}>Notifications</Text>
+              <Text style={s.panelTitle}>{t("dashboard.notifications")}</Text>
               <TouchableOpacity onPress={() => setShowNotifs(false)}><Text style={s.panelClose}>✕</Text></TouchableOpacity>
             </View>
-            {[
-              { icon: "✅", text: "Virement de 100 TND effectué avec succès", time: "Il y a 2h", bg: "#EDFFF2" },
-              { icon: "🔔", text: "Votre rendez-vous est confirmé pour demain", time: "Il y a 5h", bg: "#EBF5FF" },
-              { icon: "⚠️", text: "Dépenses élevées ce mois (+18%)", time: "Hier", bg: "#FFF5E6" },
-            ].map((n, i) => (
+            {NOTIFS.map((n, i) => (
               <View key={i} style={[s.notifItem, { backgroundColor: n.bg }]}>
                 <Text style={{ fontSize: 22 }}>{n.icon}</Text>
                 <View style={{ flex: 1 }}>
@@ -222,7 +231,7 @@ export default function DashboardScreen() {
               </View>
             ))}
             <TouchableOpacity style={s.notifClear} onPress={() => setShowNotifs(false)}>
-              <Text style={s.notifClearText}>Tout marquer comme lu</Text>
+              <Text style={s.notifClearText}>{t("dashboard.markAllRead")}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -232,11 +241,7 @@ export default function DashboardScreen() {
       <Modal transparent visible={showSettings} animationType="fade" onRequestClose={() => setShowSettings(false)}>
         <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={() => setShowSettings(false)}>
           <View style={s.settingsMenu}>
-            {[
-              { icon: "👤", label: "Mon Profil",   onPress: () => { setShowSettings(false); router.push("/(tabs)/profil"); } },
-              { icon: "💳", label: "Mes Comptes",  onPress: () => { setShowSettings(false); router.push("/(tabs)/comptes"); } },
-              { icon: "⏻",  label: "Déconnexion", onPress: () => { setShowSettings(false); handleLogout(); }, red: true },
-            ].map((item, i, arr) => (
+            {SETTINGS_ITEMS.map((item, i, arr) => (
               <View key={i}>
                 <TouchableOpacity style={s.settingsItem} onPress={item.onPress}>
                   <Text style={{ fontSize: 18 }}>{item.icon}</Text>
@@ -257,8 +262,6 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F2F4F8" },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   scroll: { flex: 1, paddingHorizontal: 20 },
-
-  // HEADER
   headerWhite: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#fff", paddingHorizontal: 20, paddingVertical: 14, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   headerLogo: { width: 40, height: 40, resizeMode: "contain" },
@@ -267,15 +270,11 @@ const s = StyleSheet.create({
   iconBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: "#F2F4F8", justifyContent: "center", alignItems: "center" },
   iconBtnText: { fontSize: 18 },
   notifDot: { position: "absolute", top: 6, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: "#FF3B30", borderWidth: 1.5, borderColor: "#fff" },
-
-  // USER SECTION
   userSection: { flexDirection: "row", alignItems: "center", backgroundColor: "#F2F4F8", paddingHorizontal: 20, paddingVertical: 16, gap: 12 },
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#1a3c6e", justifyContent: "center", alignItems: "center" },
   avatarText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
   greetSmall: { fontSize: 12, color: "#888" },
   greetName: { fontSize: 16, fontWeight: "bold", color: "#1a1a2e" },
-
-  // CARD
   card: { backgroundColor: "#1a3c6e", borderRadius: 24, padding: 24, marginTop: 4, marginBottom: 28, overflow: "hidden", shadowColor: "#1a3c6e", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 16, elevation: 10 },
   cardCircle1: { position: "absolute", width: 128, height: 128, borderRadius: 64, backgroundColor: "rgba(255,255,255,0.1)", top: -40, right: -30 },
   cardCircle2: { position: "absolute", width: 96, height: 96, borderRadius: 48, backgroundColor: "rgba(255,255,255,0.1)", bottom: -30, left: -20 },
@@ -288,14 +287,10 @@ const s = StyleSheet.create({
   cardBottom: { flexDirection: "row", justifyContent: "space-between" },
   cardIban: { color: "rgba(255,255,255,0.5)", fontSize: 11 },
   cardExpire: { color: "rgba(255,255,255,0.5)", fontSize: 11 },
-
-  // ACTIONS
   actionsRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 28 },
   actionBtn: { alignItems: "center", flex: 1 },
   actionCircle: { width: 52, height: 52, borderRadius: 26, backgroundColor: "#fff", justifyContent: "center", alignItems: "center", marginBottom: 6, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 3 },
   actionLabel: { fontSize: 11, color: "#555", fontWeight: "500" },
-
-  // SUMMARY
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   sectionTitle: { fontSize: 15, fontWeight: "bold", color: "#1a1a2e" },
   sectionLink: { fontSize: 13, color: "#1a3c6e", fontWeight: "600" },
@@ -306,8 +301,6 @@ const s = StyleSheet.create({
   summaryTrend: { fontSize: 10, marginBottom: 8 },
   miniBarRow: { flexDirection: "row", alignItems: "flex-end", gap: 3, height: 28 },
   miniBar: { flex: 1, borderRadius: 2 },
-
-  // TX
   txRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 16, padding: 14, marginBottom: 8, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1 },
   txIcon: { width: 44, height: 44, borderRadius: 12, justifyContent: "center", alignItems: "center", marginRight: 12 },
   txInfo: { flex: 1 },
@@ -317,8 +310,6 @@ const s = StyleSheet.create({
   txAmt: { fontSize: 14, fontWeight: "bold" },
   emptyBox: { backgroundColor: "#fff", borderRadius: 16, padding: 20, alignItems: "center" },
   emptyText: { color: "#aaa", fontSize: 14 },
-
-  // MODALS
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.3)" },
   notifPanel: { position: "absolute", top: 65, right: 16, width: 320, backgroundColor: "#fff", borderRadius: 18, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 12 },
   panelHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#F2F4F8" },
