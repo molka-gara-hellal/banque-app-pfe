@@ -33,12 +33,102 @@ const fmtDate = (d) => {
   return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
 };
 
+/**
+ * Calcule les stats financières réelles à partir de TOUTES les transactions.
+ * Retourne : revenus ce mois, dépenses ce mois, % évolution vs mois précédent.
+ */
+const computeStats = (allTransactions) => {
+  const now = new Date();
+  const curYear  = now.getFullYear();
+  const curMonth = now.getMonth(); // 0-indexed
+
+  const prevDate  = new Date(curYear, curMonth - 1, 1);
+  const prevYear  = prevDate.getFullYear();
+  const prevMonth = prevDate.getMonth();
+
+  let revenusCurMois  = 0;
+  let revenusPreMois  = 0;
+  let depensesCurMois = 0;
+  let depensesPreMois = 0;
+
+  allTransactions.forEach((tx) => {
+    const d   = new Date(tx.created_at || tx.date);
+    const y   = d.getFullYear();
+    const m   = d.getMonth();
+    const amt = parseFloat(tx.amount ?? 0);
+
+    // credit → revenu  |  debit → dépense  |  fallback: signe du montant
+    const isCredit = tx.type === "credit" || (tx.type == null && amt > 0);
+    const isDebit  = tx.type === "debit"  || (tx.type == null && amt < 0);
+    const absAmt   = Math.abs(amt);
+
+    if (y === curYear && m === curMonth) {
+      if (isCredit) revenusCurMois  += absAmt;
+      if (isDebit)  depensesCurMois += absAmt;
+    } else if (y === prevYear && m === prevMonth) {
+      if (isCredit) revenusPreMois  += absAmt;
+      if (isDebit)  depensesPreMois += absAmt;
+    }
+  });
+
+  // Calcul % évolution
+  const pctChange = (cur, prev) => {
+    if (prev === 0 && cur === 0) return null;          // pas de données
+    if (prev === 0)              return null;           // impossible à calculer
+    return ((cur - prev) / prev) * 100;
+  };
+
+  const revPct = pctChange(revenusCurMois, revenusPreMois);
+  const depPct = pctChange(depensesCurMois, depensesPreMois);
+
+  // Formatage affichage
+  const fmtPct = (pct, positiveIsGood = true) => {
+    if (pct === null) return null;
+    const abs   = Math.abs(pct).toFixed(1);
+    const up    = pct >= 0;
+    const arrow = up ? "↗" : "↘";
+    return { text: `${arrow} ${abs}%`, up, good: positiveIsGood ? up : !up };
+  };
+
+  // Mini bars : 5 derniers mois glissants (réels)
+  const barData = (isCredit) => {
+    const months = Array.from({ length: 5 }, (_, i) => {
+      const d = new Date(curYear, curMonth - (4 - i), 1);
+      return { y: d.getFullYear(), m: d.getMonth(), total: 0 };
+    });
+    allTransactions.forEach((tx) => {
+      const d   = new Date(tx.created_at || tx.date);
+      const y   = d.getFullYear();
+      const m   = d.getMonth();
+      const amt = parseFloat(tx.amount ?? 0);
+      const ok  = isCredit
+        ? tx.type === "credit" || (tx.type == null && amt > 0)
+        : tx.type === "debit"  || (tx.type == null && amt < 0);
+      const bar = months.find(b => b.y === y && b.m === m);
+      if (bar && ok) bar.total += Math.abs(amt);
+    });
+    const max = Math.max(...months.map(b => b.total), 1);
+    return months.map(b => Math.round((b.total / max) * 22) + 2); // hauteur en px (2–24)
+  };
+
+  return {
+    revenusCurMois,
+    depensesCurMois,
+    revPct:  fmtPct(revPct,  true),   // ↗ revenus = bien
+    depPct:  fmtPct(depPct,  false),  // ↗ dépenses = mauvais
+    revBars: barData(true),
+    depBars: barData(false),
+  };
+};
+
 export default function DashboardScreen() {
   const router = useRouter();
   const { t } = useLanguage();
   const [user, setUser]               = useState(null);
   const [account, setAccount]         = useState(null);
-  const [transactions, setTransactions] = useState([]);
+  const [transactions, setTransactions] = useState([]);      // 5 dernières (affichage)
+  const [allTransactions, setAllTransactions] = useState([]); // toutes (stats)
+  const [stats, setStats]             = useState(null);
   const [loading, setLoading]         = useState(true);
   const [showNotifs, setShowNotifs]   = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -54,7 +144,10 @@ export default function DashboardScreen() {
         api.get("/transactions").catch(() => ({ data: [] })),
       ]);
       setAccount(accRes.data);
-      setTransactions(txRes.data?.slice(0, 5) || []);
+      const all = txRes.data || [];
+      setAllTransactions(all);
+      setTransactions(all.slice(0, 5));
+      setStats(computeStats(all));
     } catch (e) {
     } finally {
       setLoading(false);
@@ -68,14 +161,12 @@ export default function DashboardScreen() {
 
   if (loading) return <View style={s.centered}><ActivityIndicator size="large" color="#1a3c6e" /></View>;
 
-  const prenom = user?.prenom || user?.nom || user?.email?.split("@")[0] || "Client";
-  const nom = user?.nom || "";
-  const fullName = [prenom, nom].filter(Boolean).join(" ");
-  const initiale = prenom.charAt(0).toUpperCase();
-  const balance = parseFloat(account?.balance ?? 0);
+  const prenom    = user?.prenom || user?.nom || user?.email?.split("@")[0] || "Client";
+  const nom       = user?.nom || "";
+  const fullName  = [prenom, nom].filter(Boolean).join(" ");
+  const initiale  = prenom.charAt(0).toUpperCase();
+  const balance   = parseFloat(account?.balance ?? 0);
   const accountNum = account?.iban || account?.account_number || "0000000000";
-  const revenus  = transactions.filter(tx => parseFloat(tx.amount) > 0).reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
-  const depenses = transactions.filter(tx => parseFloat(tx.amount) < 0).reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
 
   const quickActions = [
     { icon: "↗", label: t("actions.transfer"),     onPress: () => router.push("/(tabs)/virement") },
@@ -154,29 +245,56 @@ export default function DashboardScreen() {
           ))}
         </View>
 
-        {/* ── RÉSUMÉ ── */}
+        {/* ── RÉSUMÉ FINANCIER RÉEL ── */}
         <View style={s.sectionHeader}>
           <Text style={s.sectionTitle}>{t("dashboard.financialSummary")}</Text>
-          <TouchableOpacity><Text style={s.sectionLink}>{t("dashboard.details")}</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push("/(tabs)/transactions")}>
+            <Text style={s.sectionLink}>{t("dashboard.details")}</Text>
+          </TouchableOpacity>
         </View>
         <View style={s.summaryRow}>
+          {/* REVENUS */}
           <View style={[s.summaryCard, { marginRight: 6 }]}>
             <Text style={s.summaryLabel}>{t("dashboard.income")}</Text>
-            <Text style={[s.summaryAmt, { color: "#34C759" }]}>+{revenus.toLocaleString("fr-TN", { minimumFractionDigits: 2 })} TND</Text>
-            <Text style={[s.summaryTrend, { color: "#34C759" }]}>{t("dashboard.incomeTrend")}</Text>
+            <Text style={[s.summaryAmt, { color: "#34C759" }]}>
+              +{(stats?.revenusCurMois ?? 0).toLocaleString("fr-TN", { minimumFractionDigits: 2 })} TND
+            </Text>
+            {stats?.revPct ? (
+              <Text style={[s.summaryTrend, { color: stats.revPct.good ? "#34C759" : "#FF3B30" }]}>
+                {stats.revPct.text} vs mois dernier
+              </Text>
+            ) : (
+              <Text style={[s.summaryTrend, { color: "#aaa" }]}>— pas de données</Text>
+            )}
             <View style={s.miniBarRow}>
-              {[40,55,45,60,70].map((h,i) => (
-                <View key={i} style={[s.miniBar, { height: h * 0.32, backgroundColor: i===4 ? "#34C759" : "#e5e7eb" }]} />
+              {(stats?.revBars ?? [4,4,4,4,4]).map((h, i, arr) => (
+                <View key={i} style={[s.miniBar, {
+                  height: h,
+                  backgroundColor: i === arr.length - 1 ? "#34C759" : "#e5e7eb"
+                }]} />
               ))}
             </View>
           </View>
+
+          {/* DÉPENSES */}
           <View style={[s.summaryCard, { marginLeft: 6 }]}>
             <Text style={s.summaryLabel}>{t("dashboard.expenses")}</Text>
-            <Text style={[s.summaryAmt, { color: "#FF3B30" }]}>{depenses.toLocaleString("fr-TN", { minimumFractionDigits: 2 })} TND</Text>
-            <Text style={[s.summaryTrend, { color: "#FF3B30" }]}>{t("dashboard.expensesTrend")}</Text>
+            <Text style={[s.summaryAmt, { color: "#FF3B30" }]}>
+              -{(stats?.depensesCurMois ?? 0).toLocaleString("fr-TN", { minimumFractionDigits: 2 })} TND
+            </Text>
+            {stats?.depPct ? (
+              <Text style={[s.summaryTrend, { color: stats.depPct.good ? "#34C759" : "#FF3B30" }]}>
+                {stats.depPct.text} vs mois dernier
+              </Text>
+            ) : (
+              <Text style={[s.summaryTrend, { color: "#aaa" }]}>— pas de données</Text>
+            )}
             <View style={s.miniBarRow}>
-              {[50,70,45,85,60].map((h,i) => (
-                <View key={i} style={[s.miniBar, { height: h * 0.32, backgroundColor: i===3 ? "#FF3B30" : "#e5e7eb" }]} />
+              {(stats?.depBars ?? [4,4,4,4,4]).map((h, i, arr) => (
+                <View key={i} style={[s.miniBar, {
+                  height: h,
+                  backgroundColor: i === arr.length - 1 ? "#FF3B30" : "#e5e7eb"
+                }]} />
               ))}
             </View>
           </View>
@@ -193,8 +311,12 @@ export default function DashboardScreen() {
           <View style={s.emptyBox}><Text style={s.emptyText}>{t("dashboard.noTransactions")}</Text></View>
         ) : transactions.map((tx, i) => {
           const label = tx.label || tx.description || tx.type || t("dashboard.transaction");
-          const cat = getCat(label);
-          const amt = parseFloat(tx.amount);
+          const cat   = getCat(label);
+          const amt   = tx.type === "credit"
+            ? Math.abs(parseFloat(tx.amount))
+            : tx.type === "debit"
+            ? -Math.abs(parseFloat(tx.amount))
+            : parseFloat(tx.amount);
           return (
             <View key={tx.id || i} style={s.txRow}>
               <View style={[s.txIcon, { backgroundColor: cat.bg }]}>
