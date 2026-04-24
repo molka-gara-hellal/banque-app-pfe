@@ -6,19 +6,55 @@ exports.createSession = async (userId, token, req) => {
   try {
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
-    // Détecter le type d'appareil depuis User-Agent
+    // Détecter le type et modèle d'appareil depuis User-Agent
     const ua = req.headers["user-agent"] || "";
+    const xDeviceName = req.headers["x-device-name"] || "";
+    const xDeviceType = req.headers["x-device-type"] || "";
     let deviceName = "Appareil inconnu";
     let deviceType = "other";
 
-    if (ua.includes("iPhone")) { deviceName = "iPhone"; deviceType = "mobile"; }
-    else if (ua.includes("iPad")) { deviceName = "iPad"; deviceType = "tablet"; }
-    else if (ua.includes("Android") && ua.includes("Mobile")) { deviceName = "Android Mobile"; deviceType = "mobile"; }
-    else if (ua.includes("Android")) { deviceName = "Android Tablet"; deviceType = "tablet"; }
-    else if (ua.includes("Windows")) { deviceName = "Windows PC"; deviceType = "desktop"; }
-    else if (ua.includes("Macintosh")) { deviceName = "Mac"; deviceType = "desktop"; }
-    else if (ua.includes("Linux")) { deviceName = "Linux PC"; deviceType = "desktop"; }
-    else if (ua.includes("Expo") || ua.includes("okhttp")) { deviceName = "Mobile App"; deviceType = "mobile"; }
+    // Priorité aux headers personnalisés envoyés par l'app
+    if (xDeviceName) {
+      deviceName = xDeviceName;
+      deviceType = xDeviceType || "mobile";
+    } else if (ua.includes("iPhone")) {
+      // Extraire le modèle iPhone
+      const match = ua.match(/iPhone OS (\d+_\d+)/);
+      deviceName = match ? `iPhone (iOS ${match[1].replace("_", ".")})` : "iPhone";
+      deviceType = "mobile";
+    } else if (ua.includes("iPad")) {
+      deviceName = "iPad";
+      deviceType = "tablet";
+    } else if (ua.includes("Samsung") || ua.includes("SM-")) {
+      const match = ua.match(/SM-([A-Z0-9]+)/);
+      deviceName = match ? `Samsung ${match[1]}` : "Samsung";
+      deviceType = "mobile";
+    } else if (ua.includes("Xiaomi") || ua.includes("MI ") || ua.includes("Redmi")) {
+      deviceName = "Xiaomi";
+      deviceType = "mobile";
+    } else if (ua.includes("Huawei") || ua.includes("HUAWEI")) {
+      deviceName = "Huawei";
+      deviceType = "mobile";
+    } else if (ua.includes("Android") && ua.includes("Mobile")) {
+      const match = ua.match(/; ([^;)]+) Build/);
+      deviceName = match ? match[1].trim() : "Android Mobile";
+      deviceType = "mobile";
+    } else if (ua.includes("Android")) {
+      deviceName = "Android Tablet";
+      deviceType = "tablet";
+    } else if (ua.includes("Windows")) {
+      deviceName = "Windows PC";
+      deviceType = "desktop";
+    } else if (ua.includes("Macintosh")) {
+      deviceName = "Mac";
+      deviceType = "desktop";
+    } else if (ua.includes("Linux")) {
+      deviceName = "Linux PC";
+      deviceType = "desktop";
+    } else if (ua.includes("Expo") || ua.includes("okhttp")) {
+      deviceName = "Application Mobile";
+      deviceType = "mobile";
+    }
 
     // Récupérer IP
     const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "Inconnue";

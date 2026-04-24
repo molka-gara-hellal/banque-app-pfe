@@ -13,6 +13,7 @@ const {
   getPendingRegistrations,
   approveRegistration,
   rejectRegistration,
+  createAccountForClient,
 } = require("../controllers/admin.controller");
 
 // Tous ces endpoints sont accessibles aux agents ET à l'admin
@@ -28,5 +29,8 @@ router.get("/segmentation",         authMiddleware, agentMiddleware, getSegmenta
 router.get("/registrations",              authMiddleware, agentMiddleware, getPendingRegistrations);
 router.post("/registrations/:id/approve", authMiddleware, agentMiddleware, approveRegistration);
 router.post("/registrations/:id/reject",  authMiddleware, agentMiddleware, rejectRegistration);
+
+// ✅ Créer compte supplémentaire
+router.post("/accounts", authMiddleware, agentMiddleware, createAccountForClient);
 
 module.exports = router;

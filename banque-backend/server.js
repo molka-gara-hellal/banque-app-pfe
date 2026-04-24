@@ -21,6 +21,8 @@ const appointmentRoutes = require("./routes/appointment.routes");
 const adminRoutes = require("./routes/admin.routes");
 const assistantRoutes = require("./routes/assistant.routes");
 const agentRoutes = require("./routes/agent.routes");
+const supportRoutes = require("./routes/support.routes");
+app.use("/api/support", supportRoutes);
 
 app.use("/api/admin", adminRoutes);
 app.use("/api/auth", authRoutes);

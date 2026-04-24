@@ -27,8 +27,9 @@ const LINK_ROUTES = {
   virement: "/(tabs)/virement",
   rdv: "/(tabs)/rdv",
   comptes: "/(tabs)/comptes",
-  profil: "/(tabs)/profile",
-  transactions: "/(tabs)/transactions",
+  profil: "/(tabs)/profil",
+  transactions: "/(tabs)/comptes",
+  support: "/(tabs)/profile-pages/support",
 };
 
 // Parse un texte qui peut contenir [Texte](lien) markdown

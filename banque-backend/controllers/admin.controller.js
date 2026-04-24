@@ -343,3 +343,41 @@ exports.getConseillerSuggestions = async (req, res) => {
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
+
+// ─── CRÉER UN COMPTE SUPPLÉMENTAIRE ──────────────────────────────────────────
+// POST /api/admin/accounts — créer un compte pour un client existant
+exports.createAccountForClient = async (req, res) => {
+  try {
+    const { user_id, accountType } = req.body;
+
+    if (!user_id || !accountType) {
+      return res.status(400).json({ message: "user_id et accountType requis" });
+    }
+
+    // Vérifier que l'utilisateur existe et est un client
+    const userCheck = await db.query(
+      "SELECT id, status FROM users WHERE id = $1 AND role = 'client'",
+      [user_id]
+    );
+    if (!userCheck.rows.length) {
+      return res.status(404).json({ message: "Client introuvable" });
+    }
+    if (userCheck.rows[0].status !== 'active') {
+      return res.status(400).json({ message: "Le client doit être actif pour ouvrir un compte" });
+    }
+
+    // Générer un IBAN unique
+    const iban = 'TN59' + String(Date.now()).slice(-16).padStart(16, '0');
+
+    await db.query(
+      `INSERT INTO accounts (user_id, iban, balance, currency, account_type)
+       VALUES ($1, $2, 0, 'TND', $3)`,
+      [user_id, iban, accountType]
+    );
+
+    res.json({ message: "Compte créé avec succès ✅", iban });
+  } catch (err) {
+    console.error("Erreur createAccountForClient ❌", err.message);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+};

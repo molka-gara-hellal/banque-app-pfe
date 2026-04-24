@@ -14,10 +14,13 @@ const LanguageContext = createContext({
   t: (key) => key,
   setLangue: () => {},
   isRTL: false,
+  langVersion: 0,
 });
 
 export function LanguageProvider({ children }) {
   const [langue, setLangueState] = useState("fr");
+  // ✅ langVersion changes on every language switch → forces full re-render
+  const [langVersion, setLangVersion] = useState(0);
 
   useEffect(() => {
     const load = async () => {
@@ -40,6 +43,7 @@ export function LanguageProvider({ children }) {
   const setLangue = async (code) => {
     if (!TRANSLATIONS[code]) return;
     setLangueState(code);
+    setLangVersion((v) => v + 1); // ✅ trigger re-render for ALL consumers
     try {
       if (Platform.OS === "web") {
         localStorage.setItem(STORAGE_KEY, code);
@@ -50,10 +54,6 @@ export function LanguageProvider({ children }) {
     } catch (_) {}
   };
 
-  /**
-   * t("dashboard.hello")  →  "Bonjour," (fr) / "مرحباً،" (ar) / "Hello," (en)
-   * Supports dot-notation for nested keys.
-   */
   const t = (key) => {
     const keys = key.split(".");
     let value = TRANSLATIONS[langue];
@@ -66,7 +66,7 @@ export function LanguageProvider({ children }) {
 
   return (
     <LanguageContext.Provider
-      value={{ langue, t, setLangue, isRTL: langue === "ar" }}
+      value={{ langue, t, setLangue, isRTL: langue === "ar", langVersion }}
     >
       {children}
     </LanguageContext.Provider>

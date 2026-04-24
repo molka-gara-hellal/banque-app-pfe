@@ -3,14 +3,15 @@ const router = require("express").Router();
 const {
   register, login, me, sendOtpEmail, verifyOtp,
   forgotPassword, resetPassword, changePassword,
-  updateProfile, checkStatus
+  updateProfile, checkStatus, checkAvailability
 } = require("../controllers/auth.controller");
 const { getSessions, deleteSession, deleteAllOtherSessions } = require("../controllers/session.controller");
 const authMiddleware = require("../middlewares/authMiddleware");
 
 router.post("/register", register);
 router.post("/login", login);
-router.post("/check-status", checkStatus); // ✅ polling depuis l'app
+router.post("/check-status", checkStatus);
+router.post("/check-availability", checkAvailability); // ✅ vérifier email/tel avant inscription
 
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);

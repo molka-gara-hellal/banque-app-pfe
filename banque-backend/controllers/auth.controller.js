@@ -417,3 +417,33 @@ exports.updateProfile = async (req, res) => {
     return res.status(500).json({ message: "Erreur serveur" });
   }
 };
+
+// ✅ CHECK AVAILABILITY — vérifie email et téléphone avant inscription
+exports.checkAvailability = async (req, res) => {
+  try {
+    const { email, telephone } = req.body;
+
+    if (email) {
+      const emailCheck = await db.query(
+        "SELECT id FROM users WHERE email = $1", [email]
+      );
+      if (emailCheck.rows.length > 0) {
+        return res.status(400).json({ message: "Cette adresse email est déjà utilisée" });
+      }
+    }
+
+    if (telephone) {
+      const phoneCheck = await db.query(
+        "SELECT id FROM users WHERE telephone = $1", [telephone]
+      );
+      if (phoneCheck.rows.length > 0) {
+        return res.status(400).json({ message: "Ce numéro de téléphone est déjà utilisé" });
+      }
+    }
+
+    return res.json({ available: true });
+  } catch (err) {
+    console.error("Erreur checkAvailability ❌", err);
+    return res.status(500).json({ message: "Erreur serveur" });
+  }
+};

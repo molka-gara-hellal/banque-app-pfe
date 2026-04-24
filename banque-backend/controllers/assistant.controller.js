@@ -31,6 +31,16 @@ function detectIntent(message) {
   )
     return "TRANSACTIONS";
 
+  if (
+    msg.includes("support") ||
+    msg.includes("contact") ||
+    msg.includes("aide") ||
+    msg.includes("conseiller") ||
+    msg.includes("téléphone") ||
+    msg.includes("appeler")
+  )
+    return "SUPPORT";
+
   return "GENERAL";
 }
 
@@ -102,6 +112,8 @@ DONNÉES RÉELLES DU CLIENT (utilise ces données dans ta réponse) :
 DONNÉES RÉELLES DU CLIENT (affiche ces transactions dans ta réponse) :
 Dernières opérations :
 ${lines.join("\n")}
+
+Termine avec ce lien : [📋 Voir toutes mes transactions](transactions)
 `;
       } else {
         dataContext = `DONNÉES RÉELLES : Aucune transaction trouvée pour ce client.`;
@@ -163,6 +175,23 @@ Explique comment faire un virement en 3 étapes simples avec un exemple concret 
 3. Confirmer
 Exemple : "Pour envoyer 100 TND à Mohamed Ali (IBAN : TN59 1234 5678 9012 3456 7890), ..."
 Termine avec le lien : [👉 Aller à la page Virement](virement)
+
+IMPORTANT : Si le client a un compte Wadiaa, Wadiaa Spécifique, Ithmar ou Épargne, précise que ces comptes ne permettent PAS les virements. Seul le compte courant peut effectuer des virements.
+`
+    );
+  }
+
+  if (intent === "SUPPORT") {
+    return (
+      basePrompt +
+      `
+
+INSTRUCTION SPÉCIALE SUPPORT :
+Le client veut contacter le support. Donne-lui ces informations :
+- 📞 Téléphone : +216 73 487 123
+- 📧 Email : support@wifakbank.tn
+- 🕐 Horaires : Lundi - Samedi, 8h - 20h
+- Lien vers la page de contact : [📩 Contacter le support](support)
 `
     );
   }

@@ -18,23 +18,165 @@ import { getUser, removeToken } from "../../store/authStore";
 const PERIODS = ["7J", "1M", "3M", "6M", "1A"];
 
 const CATEGORY_CONFIG = {
-  Achats:       { icon: "🛍️", bg: "#FFF0F0" },
-  Alimentation: { icon: "🍔", bg: "#FFF5E6" },
-  Facture:      { icon: "📄", bg: "#F0EFFF" },
-  Virement:     { icon: "↗",  bg: "#EDFFF2" },
-  Retrait:      { icon: "💶", bg: "#EBF5FF" },
-  default:      { icon: "💳", bg: "#F5F5F5" },
+  Achats:       { icon: "🛍️", bg: "#FFF0F0", color: "#FF3B30" },
+  Alimentation: { icon: "🍔", bg: "#FFF5E6", color: "#FF9500" },
+  Facture:      { icon: "📄", bg: "#F0EFFF", color: "#5856D6" },
+  Virement:     { icon: "↗",  bg: "#EDFFF2", color: "#34C759" },
+  Retrait:      { icon: "💶", bg: "#EBF5FF", color: "#007AFF" },
+  Transport:    { icon: "🚗", bg: "#F5F0FF", color: "#9C27B0" },
+  default:      { icon: "💳", bg: "#F5F5F5", color: "#888" },
 };
 const getCat = (label = "") => {
   for (const key of Object.keys(CATEGORY_CONFIG)) {
-    if (label.toLowerCase().includes(key.toLowerCase())) return CATEGORY_CONFIG[key];
+    if (key !== "default" && label.toLowerCase().includes(key.toLowerCase()))
+      return { ...CATEGORY_CONFIG[key], key };
   }
-  return CATEGORY_CONFIG.default;
+  return { ...CATEGORY_CONFIG.default, key: "Autre" };
 };
 const fmtDate = (d) => {
   if (!d) return "";
   return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
 };
+
+// ─── Comptes qui NE peuvent PAS faire de virement ────────────────────────────
+const NO_VIREMENT_TYPES = ["wadiaa", "wadiaa_specifique", "wadiaa specifique", "ithmar", "epargne"];
+const canDoVirement = (accountType) => {
+  if (!accountType) return true;
+  return !NO_VIREMENT_TYPES.some(t => accountType.toLowerCase().includes(t));
+};
+
+// ─── Analyse de profil personnalisée ─────────────────────────────────────────
+function computeProfile(balance, transactions) {
+  const txLast30 = transactions.filter(tx => {
+    const d = new Date(tx.created_at || tx.date);
+    const diff = (Date.now() - d.getTime()) / (1000 * 60 * 60 * 24);
+    return diff <= 30;
+  });
+  const debits = txLast30.filter(t => t.type === "debit" || parseFloat(t.amount) < 0);
+  const totalDebit30 = debits.reduce((s, t) => s + Math.abs(parseFloat(t.amount)), 0);
+  const txLast5 = transactions.filter(tx => {
+    const d = new Date(tx.created_at || tx.date);
+    const diff = (Date.now() - d.getTime()) / (1000 * 60 * 60 * 24);
+    return diff <= 5;
+  });
+  const versements5j = txLast5
+    .filter(t => t.type === "credit" || parseFloat(t.amount) > 0)
+    .reduce((s, t) => s + Math.abs(parseFloat(t.amount)), 0);
+
+  if (balance > 50000 && versements5j >= 500 && txLast30.length > 10) {
+    return {
+      type: "Client Fidèle",
+      score: Math.min(1000, 700 + Math.floor(balance / 1000)),
+      maxScore: 1000,
+      risk: "Faible",
+      color: "#34C759",
+      insights: [
+        { label: "Solde moyen", value: balance.toLocaleString("fr-TN") + " TND" },
+        { label: "Versements (5 jours)", value: versements5j.toLocaleString("fr-TN") + " TND" },
+        { label: "Transactions/mois", value: txLast30.length + " opérations" },
+        { label: "Comportement", value: "Excellent" },
+      ],
+    };
+  } else if (balance > 10000 && txLast30.length > 5) {
+    return {
+      type: "Client Actif",
+      score: Math.min(700, 400 + Math.floor(balance / 500)),
+      maxScore: 1000,
+      risk: "Modéré",
+      color: "#007AFF",
+      insights: [
+        { label: "Solde actuel", value: balance.toLocaleString("fr-TN") + " TND" },
+        { label: "Transactions/mois", value: txLast30.length + " opérations" },
+        { label: "Dépenses/mois", value: totalDebit30.toLocaleString("fr-TN") + " TND" },
+        { label: "Comportement", value: "Régulier" },
+      ],
+    };
+  } else if (balance > 1000) {
+    return {
+      type: "Client Inactif",
+      score: Math.min(400, 100 + Math.floor(balance / 100)),
+      maxScore: 1000,
+      risk: "Moyen",
+      color: "#FF9500",
+      insights: [
+        { label: "Solde actuel", value: balance.toLocaleString("fr-TN") + " TND" },
+        { label: "Transactions/mois", value: txLast30.length + " opérations" },
+        { label: "Conseil", value: "Augmentez vos opérations" },
+        { label: "Comportement", value: "Peu actif" },
+      ],
+    };
+  } else {
+    return {
+      type: "Client À Risque",
+      score: Math.max(50, Math.floor(balance / 50)),
+      maxScore: 1000,
+      risk: "Élevé",
+      color: "#FF3B30",
+      insights: [
+        { label: "Solde actuel", value: balance.toLocaleString("fr-TN") + " TND" },
+        { label: "Transactions/mois", value: txLast30.length + " opérations" },
+        { label: "Conseil", value: "Approvisionnez votre compte" },
+        { label: "Comportement", value: "Risqué" },
+      ],
+    };
+  }
+}
+
+// ─── Alertes personnalisées ───────────────────────────────────────────────────
+function computeAlerts(balance, transactions) {
+  const alerts = [];
+  const txLast30 = transactions.filter(tx => {
+    const d = new Date(tx.created_at || tx.date);
+    return (Date.now() - d.getTime()) / (1000 * 60 * 60 * 24) <= 30;
+  });
+  const debits = txLast30.filter(t => t.type === "debit" || parseFloat(t.amount) < 0);
+  const totalDebit = debits.reduce((s, t) => s + Math.abs(parseFloat(t.amount)), 0);
+
+  if (balance < 500) {
+    alerts.push({ icon: "⚠️", text: "Solde faible", detail: balance.toFixed(3) + " TND", color: "#FF3B30", bg: "#fee2e2" });
+  }
+  if (totalDebit > balance * 0.8 && totalDebit > 0) {
+    alerts.push({ icon: "▲", text: "Dépenses élevées ce mois", detail: totalDebit.toFixed(3) + " TND dépensés", color: "#FF9500", bg: "#fff7e6" });
+  }
+  const lastTx = transactions[0];
+  if (lastTx) {
+    const amt = parseFloat(lastTx.amount);
+    alerts.push({
+      icon: amt >= 0 ? "✓" : "↓",
+      text: amt >= 0 ? "Crédit reçu" : "Débit effectué",
+      detail: Math.abs(amt).toFixed(3) + " TND — " + fmtDate(lastTx.created_at),
+      color: amt >= 0 ? "#34C759" : "#FF3B30",
+      bg: amt >= 0 ? "#dcfce7" : "#fee2e2",
+    });
+  }
+  if (alerts.length === 0) {
+    alerts.push({ icon: "✅", text: "Compte en bonne santé", detail: "Aucune alerte", color: "#34C759", bg: "#dcfce7" });
+  }
+  return alerts;
+}
+
+// ─── Répartition des dépenses réelles ────────────────────────────────────────
+function computeExpenses(transactions) {
+  const cats = {};
+  const debits = transactions.filter(t => t.type === "debit" || parseFloat(t.amount) < 0);
+  let total = 0;
+  for (const tx of debits) {
+    const cat = getCat(tx.description || tx.label || tx.type || "");
+    const amt = Math.abs(parseFloat(tx.amount));
+    cats[cat.key] = (cats[cat.key] || 0) + amt;
+    total += amt;
+  }
+  if (total === 0) return [];
+  const COLORS = ["#1a3c6e","#4A90D9","#A8C4E0","#34C759","#FF9500","#FF3B30"];
+  return Object.entries(cats)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([label, amt], i) => ({
+      label,
+      pct: Math.round((amt / total) * 100),
+      color: COLORS[i] || "#888",
+    }));
+}
 
 export default function ComptesScreen() {
   const router = useRouter();
@@ -45,7 +187,6 @@ export default function ComptesScreen() {
   const [period, setPeriod]       = useState("1M");
   const [pdfLoading, setPdfLoading] = useState(false);
   const [showMenu, setShowMenu]   = useState(false);
-  const [showPdfModal, setShowPdfModal] = useState(false);
 
   useEffect(() => { loadData(); }, []);
 
@@ -96,35 +237,18 @@ export default function ComptesScreen() {
   const prenom = user?.prenom || user?.nom || user?.email?.split("@")[0] || "Client";
   const balance = parseFloat(account?.balance ?? 0);
   const accountNum = account?.iban || account?.account_number || "0000";
+  const accountType = account?.account_type || "Compte Courant";
   const initiale = prenom.charAt(0).toUpperCase();
+  const virementAllowed = canDoVirement(accountType);
 
-  const clientProfile = {
-    type: "Client Fidèle",
-    score: 850,
-    maxScore: 1000,
-    risk: "Faible",
-    insights: [
-      { label: "Comportement de paiement", value: "Excellent" },
-      { label: "Stabilité financière", value: "Élevée" },
-      { label: "Historique crédit", value: "Très bon" },
-    ],
-  };
-
-  const alerts = [
-    { icon: "▲", text: "Dépenses élevées ce mois", detail: "+18%", color: "#FF3B30", bg: "#fee2e2" },
-    { icon: "✓", text: "Facture payée avec succès", detail: "le 14/10", color: "#34C759", bg: "#dcfce7" },
-    { icon: "📅", text: "Rendez-vous votre agence", detail: "demain", color: "#007AFF", bg: "#dbeafe" },
-  ];
-
-  const donutSegments = [
-    { label: "Achats", pct: 35, color: "#1a3c6e" },
-    { label: "Transport", pct: 24, color: "#4A90D9" },
-    { label: "Factures", pct: 41, color: "#A8C4E0" },
-  ];
+  // Données personnalisées calculées à partir des vraies transactions
+  const clientProfile = computeProfile(balance, transactions);
+  const alerts = computeAlerts(balance, transactions);
+  const expenses = computeExpenses(transactions);
 
   return (
     <View style={s.root}>
-      {/* HEADER BLANC */}
+      {/* HEADER */}
       <View style={s.headerWhite}>
         <View style={s.headerLeft}>
           <Image source={require("../../assets/images/wifak-logo.png")} style={s.headerLogo} />
@@ -133,8 +257,6 @@ export default function ComptesScreen() {
         <TouchableOpacity style={s.moreBtn} onPress={() => setShowMenu(true)}>
           <Text style={s.moreDots}>•••</Text>
         </TouchableOpacity>
-
-        {/* MENU ••• */}
         <Modal transparent visible={showMenu} animationType="fade" onRequestClose={() => setShowMenu(false)}>
           <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={() => setShowMenu(false)}>
             <View style={s.menuDropdown}>
@@ -147,7 +269,7 @@ export default function ComptesScreen() {
         </Modal>
       </View>
 
-      {/* USER SECTION */}
+      {/* USER */}
       <View style={s.userSection}>
         <View style={s.avatar}><Text style={s.avatarText}>{initiale}</Text></View>
         <View>
@@ -162,20 +284,28 @@ export default function ComptesScreen() {
         <View style={s.card}>
           <View style={s.cardCircle1} /><View style={s.cardCircle2} />
           <View style={s.cardTopRow}>
-            <Text style={s.cardType}>{(account?.account_type || "COMPTE COURANT").toUpperCase()}</Text>
+            <Text style={s.cardType}>{accountType.toUpperCase()}</Text>
             <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 20 }}>◎</Text>
           </View>
           <Text style={s.cardNum}>**** **** **** {accountNum.slice(-4)}</Text>
           <Text style={s.cardBalLabel}>SOLDE TOTAL</Text>
           <Text style={s.cardBal}>
-            {balance.toLocaleString("fr-TN", { minimumFractionDigits: 2 })}
+            {balance.toLocaleString("fr-TN", { minimumFractionDigits: 3 })}
             <Text style={s.cardCur}> TND</Text>
           </Text>
           <View style={s.cardBottom}>
-            <Text style={s.cardIban}>TN59 ******* ******* {accountNum.slice(-4)}</Text>
-            <Text style={s.cardExpire}>EXPIRE 12/28</Text>
+            <Text style={s.cardIban}>{accountNum.slice(0, 8)}...{accountNum.slice(-4)}</Text>
           </View>
         </View>
+
+        {/* ⚠️ AVERTISSEMENT VIREMENT */}
+        {!virementAllowed && (
+          <View style={s.noVirementBanner}>
+            <Text style={s.noVirementText}>
+              ℹ️ Le compte {accountType} ne permet pas les virements. Seul un compte courant peut effectuer des virements.
+            </Text>
+          </View>
+        )}
 
         {/* PÉRIODES */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }} contentContainerStyle={{ gap: 8 }}>
@@ -186,9 +316,9 @@ export default function ComptesScreen() {
           ))}
         </ScrollView>
 
-        {/* ANALYSE DE PROFIL CLIENT */}
+        {/* ANALYSE DE PROFIL CLIENT PERSONNALISÉE */}
         <Text style={s.sectionTitle}>Analyse de Profil Client</Text>
-        <View style={s.profileCard}>
+        <View style={[s.profileCard, { backgroundColor: clientProfile.color }]}>
           <View style={s.profileCardTop}>
             <View>
               <Text style={s.profileCardSubtitle}>Statut Client</Text>
@@ -210,7 +340,13 @@ export default function ComptesScreen() {
           ))}
           <View style={s.riskRow}>
             <Text style={s.riskLabel}>Niveau de risque</Text>
-            <View style={s.riskBadge}><Text style={s.riskBadgeText}>{clientProfile.risk}</Text></View>
+            <View style={[s.riskBadge, {
+              backgroundColor: clientProfile.risk === "Faible" ? "#34C759"
+                : clientProfile.risk === "Modéré" ? "#007AFF"
+                : clientProfile.risk === "Moyen" ? "#FF9500" : "#FF3B30"
+            }]}>
+              <Text style={s.riskBadgeText}>{clientProfile.risk}</Text>
+            </View>
           </View>
         </View>
 
@@ -221,7 +357,9 @@ export default function ComptesScreen() {
             <Text style={s.sectionLink}>Tout voir</Text>
           </TouchableOpacity>
         </View>
-        {transactions.slice(0, 4).map((tx, i) => {
+        {transactions.length === 0 ? (
+          <Text style={{ color: "#888", fontSize: 13, textAlign: "center", paddingVertical: 12 }}>Aucune transaction</Text>
+        ) : transactions.slice(0, 4).map((tx, i) => {
           const label = tx.label || tx.description || tx.type || "Transaction";
           const cat = getCat(label);
           const amt = parseFloat(tx.amount);
@@ -233,13 +371,13 @@ export default function ComptesScreen() {
                 <Text style={s.txDate}>{fmtDate(tx.created_at || tx.date)}</Text>
               </View>
               <Text style={[s.txAmt, { color: amt >= 0 ? "#34C759" : "#FF3B30" }]}>
-                {amt >= 0 ? "+" : ""}{amt.toFixed(2)} TND
+                {amt >= 0 ? "+" : ""}{amt.toFixed(3)} TND
               </Text>
             </View>
           );
         })}
 
-        {/* ALERTES */}
+        {/* ALERTES PERSONNALISÉES */}
         <Text style={[s.sectionTitle, { marginTop: 8 }]}>Alertes</Text>
         {alerts.map((a, i) => (
           <View key={i} style={[s.alertRow, { backgroundColor: a.bg }]}>
@@ -253,26 +391,31 @@ export default function ComptesScreen() {
           </View>
         ))}
 
-        {/* RÉPARTITION DES DÉPENSES */}
+        {/* RÉPARTITION DES DÉPENSES RÉELLES */}
         <Text style={[s.sectionTitle, { marginTop: 8 }]}>Répartition des Dépenses</Text>
         <View style={s.donutCard}>
-          {/* Donut visuel simplifié */}
-          <View style={s.donutOuter}>
-            <View style={[s.donutRing, { borderColor: "#1a3c6e" }]}>
-              <View style={s.donutCenter}>
-                <Text style={s.donutCenterText}>100%</Text>
+          {expenses.length === 0 ? (
+            <Text style={{ color: "#888", fontSize: 13, textAlign: "center", flex: 1 }}>Aucune dépense enregistrée</Text>
+          ) : (
+            <>
+              <View style={s.donutOuter}>
+                <View style={[s.donutRing, { borderColor: expenses[0]?.color || "#1a3c6e" }]}>
+                  <View style={s.donutCenter}>
+                    <Text style={s.donutCenterText}>{expenses[0]?.pct}%</Text>
+                  </View>
+                </View>
               </View>
-            </View>
-          </View>
-          <View style={s.legendContainer}>
-            {donutSegments.map((seg, i) => (
-              <View key={i} style={s.legendRow}>
-                <View style={[s.legendDot, { backgroundColor: seg.color }]} />
-                <Text style={s.legendLabel}>{seg.label}</Text>
-                <Text style={s.legendPct}>{seg.pct}%</Text>
+              <View style={s.legendContainer}>
+                {expenses.map((seg, i) => (
+                  <View key={i} style={s.legendRow}>
+                    <View style={[s.legendDot, { backgroundColor: seg.color }]} />
+                    <Text style={s.legendLabel}>{seg.label}</Text>
+                    <Text style={s.legendPct}>{seg.pct}%</Text>
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
+            </>
+          )}
         </View>
 
         {/* BOUTON PDF */}
@@ -282,7 +425,7 @@ export default function ComptesScreen() {
           disabled={pdfLoading}
         >
           <Text style={s.pdfBtnIcon}>⬇</Text>
-          <Text style={s.pdfBtnText}>Télécharger Reçu PDF</Text>
+          <Text style={s.pdfBtnText}>Télécharger Relevé PDF</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -318,11 +461,13 @@ const s = StyleSheet.create({
   cardType: { color: "rgba(255,255,255,0.7)", fontSize: 11, fontWeight: "600", letterSpacing: 1.5 },
   cardNum: { color: "rgba(255,255,255,0.6)", fontSize: 13, letterSpacing: 2, marginBottom: 8 },
   cardBalLabel: { color: "rgba(255,255,255,0.6)", fontSize: 10, fontWeight: "600", letterSpacing: 1.2, marginBottom: 4 },
-  cardBal: { color: "#fff", fontSize: 30, fontWeight: "bold", marginBottom: 16 },
+  cardBal: { color: "#fff", fontSize: 28, fontWeight: "bold", marginBottom: 16 },
   cardCur: { fontSize: 16, fontWeight: "400", color: "rgba(255,255,255,0.8)" },
   cardBottom: { flexDirection: "row", justifyContent: "space-between" },
   cardIban: { color: "rgba(255,255,255,0.5)", fontSize: 11 },
-  cardExpire: { color: "rgba(255,255,255,0.5)", fontSize: 11 },
+
+  noVirementBanner: { backgroundColor: "#FFF3CD", borderRadius: 12, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: "#FFC107" },
+  noVirementText: { color: "#856404", fontSize: 13, lineHeight: 18 },
 
   periodBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: "#fff" },
   periodBtnActive: { backgroundColor: "#1a3c6e" },
@@ -333,20 +478,20 @@ const s = StyleSheet.create({
   sectionTitle: { fontSize: 15, fontWeight: "bold", color: "#1a1a2e", marginBottom: 10 },
   sectionLink: { fontSize: 13, color: "#1a3c6e", fontWeight: "600" },
 
-  profileCard: { background: "linear-gradient(135deg, #1a3c6e, #2a5a9e)", backgroundColor: "#1a3c6e", borderRadius: 18, padding: 20, marginBottom: 20, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
+  profileCard: { borderRadius: 18, padding: 20, marginBottom: 20, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 4 },
   profileCardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 },
-  profileCardSubtitle: { color: "rgba(255,255,255,0.7)", fontSize: 12, marginBottom: 4 },
+  profileCardSubtitle: { color: "rgba(255,255,255,0.8)", fontSize: 12, marginBottom: 4 },
   profileCardType: { color: "#fff", fontSize: 18, fontWeight: "bold" },
   profileCardScore: { color: "#fff", fontSize: 30, fontWeight: "bold" },
   profileCardMax: { color: "rgba(255,255,255,0.6)", fontSize: 11 },
-  progressBg: { height: 8, backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 4, marginBottom: 16, overflow: "hidden" },
+  progressBg: { height: 8, backgroundColor: "rgba(255,255,255,0.3)", borderRadius: 4, marginBottom: 16, overflow: "hidden" },
   progressFill: { height: 8, backgroundColor: "#fff", borderRadius: 4 },
   insightRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6 },
   insightLabel: { color: "rgba(255,255,255,0.8)", fontSize: 13 },
   insightValue: { color: "#fff", fontSize: 13, fontWeight: "600" },
   riskRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.2)" },
   riskLabel: { color: "rgba(255,255,255,0.8)", fontSize: 13 },
-  riskBadge: { backgroundColor: "#34C759", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
+  riskBadge: { borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
   riskBadgeText: { color: "#fff", fontSize: 12, fontWeight: "bold" },
 
   txRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 16, padding: 14, marginBottom: 8, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1 },
@@ -363,7 +508,7 @@ const s = StyleSheet.create({
 
   donutCard: { backgroundColor: "#fff", borderRadius: 18, padding: 20, marginBottom: 20, flexDirection: "row", alignItems: "center", gap: 20, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 },
   donutOuter: { alignItems: "center", justifyContent: "center" },
-  donutRing: { width: 80, height: 80, borderRadius: 40, borderWidth: 16, borderColor: "#1a3c6e", justifyContent: "center", alignItems: "center" },
+  donutRing: { width: 80, height: 80, borderRadius: 40, borderWidth: 16, justifyContent: "center", alignItems: "center" },
   donutCenter: { alignItems: "center" },
   donutCenterText: { fontSize: 13, fontWeight: "bold", color: "#1a3c6e" },
   legendContainer: { flex: 1, gap: 8 },
