@@ -41,7 +41,7 @@ export default function VirementScreen() {
   };
 
   const accountType = account?.account_type || "";
-  const canVirement = !NO_VIREMENT_TYPES.some(t => accountType.toLowerCase().includes(t));
+  const canVirement = !NO_VIREMENT_TYPES.some(typ => accountType.toLowerCase().includes(typ));
 
   const isFormValid = iban.trim() && nom.trim() && montant.trim() && motif.trim();
 
@@ -137,7 +137,7 @@ export default function VirementScreen() {
           <Text style={s.successTo}>à <Text style={{ fontWeight: "700" }}>{nom}</Text></Text>
         </View>
         <TouchableOpacity style={s.primaryBtn} onPress={() => router.replace("/(tabs)/dashboard")}>
-          <Text style={s.primaryBtnText}>Retour à l'accueil</Text>
+          <Text style={s.primaryBtnText}>Retour à l accueil</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => { setSuccess(false); setIban(""); setNom(""); setMontant(""); setMotif(""); }}>
           <Text style={s.secondaryLink}>Nouveau virement</Text>

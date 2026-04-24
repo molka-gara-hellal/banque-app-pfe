@@ -621,32 +621,31 @@
 <script>
 // ══════════════ DATA ══════════════
 const ACCOUNT_TYPES = [
-  { name: 'Compte Courant',  desc: 'Compte pour les opérations quotidiennes avec carte de paiement et chéquier' },
-  { name: 'Compte Épargne',  desc: 'Compte d\'épargne avec intérêts annuels de 3.5%' },
-  { name: 'Compte Wadiaa',   desc: 'Compte islamique sans intérêts, conforme à la Charia' },
+  { name: 'Compte Courant',          desc: 'Compte pour les opérations quotidiennes avec carte de paiement et chéquier' },
+  { name: 'Compte Épargne',          desc: 'Compte d\'épargne rémunéré avec intérêts annuels' },
+  { name: 'Compte Wadiaa',           desc: 'Compte islamique sans intérêts, conforme à la Charia — dépôt à vue' },
+  { name: 'Compte Wadiaa Spécifique',desc: 'Compte Wadiaa dédié à un projet ou objectif spécifique' },
+  { name: 'Compte Ithmar',           desc: 'Compte d\'investissement islamique participatif (Moucharaka)' },
 ];
 const CARD_TYPES = [
-  { name: 'Carte Classic',  desc: 'Carte de débit standard — idéale pour les opérations courantes' },
-  { name: 'Carte Gold',     desc: 'Carte premium avec avantages voyages et réductions partenaires' },
-  { name: 'Carte Platinum', desc: 'Carte haut de gamme avec assurances et conciergerie 24h/24' },
+  { name: 'Carte Classic',        desc: 'Carte de débit standard — idéale pour les opérations courantes' },
+  { name: 'Carte Rasid Plus',     desc: 'Carte débit avec plafond étendu et services supplémentaires' },
+  { name: 'Carte Visa Gold',      desc: 'Carte premium avec avantages voyages et réductions partenaires' },
+  { name: 'Carte Platinum',       desc: 'Carte haut de gamme avec assurances et conciergerie 24h/24' },
+  { name: 'Carte Iddikhar',       desc: 'Carte islamique conforme à la Charia — gestion d\'épargne' },
+  { name: 'Carte Rasidi Familia',  desc: 'Carte familiale permettant plusieurs sous-cartes rattachées' },
+  { name: 'Carte Étudiant',       desc: 'Carte adaptée aux étudiants avec plafonds et avantages jeunes' },
+  { name: 'Carte Technologie',    desc: 'Carte virtuelle sécurisée pour les achats en ligne et tech' },
 ];
 
-// ✅ Données chargées depuis l'API
+// ✅ Données chargées depuis l'API uniquement
 let registrations = [];
 
 let mlClients = [];
 let allClients = [];
 let activityLog = [];
 
-let appointments = [
-  { id:'a1', name:'Ahmed Benali',     cin:'AB123456', date:'2026-04-08', time:'10:00', reason:'Consultation pour un prêt immobilier', status:'pending' },
-  { id:'a2', name:'Fatima Zahra',     cin:'FZ789012', date:'2026-04-08', time:'14:30', reason:'Ouverture d\'un compte épargne', status:'pending' },
-  { id:'a3', name:'Khadija Mansouri', cin:'KM456789', date:'2026-04-09', time:'09:00', reason:'Modification des informations du compte', status:'pending' },
-  { id:'a4', name:'Youssef El Amrani',cin:'YE234567', date:'2026-04-09', time:'11:00', reason:'Demande de carte bancaire Gold', status:'pending' },
-  { id:'a5', name:'Nadia Bennani',    cin:'NB567890', date:'2026-04-10', time:'15:00', reason:'Consultation investissement', status:'pending' },
-];
-
-
+let appointments = [];
 
 
 
@@ -1185,14 +1184,18 @@ async function approveAppointment(id) {
     const data = await apiGet('/api/admin/appointments/' + id + '/suggestions');
     const suggestions = data.suggestions || [];
     const motif = data.motif || '';
+    const client = data.client || '';
+    const datetime = data.datetime ? new Date(data.datetime).toLocaleString('fr-FR', { day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
 
     document.getElementById('rdv-motif-display').textContent = motif;
+    document.getElementById('rdv-client-display').textContent = client;
+    document.getElementById('rdv-datetime-display').textContent = datetime;
     document.getElementById('rdv-conseiller-options').innerHTML = suggestions.map(c => `
-      <div class="radio-card" id="rc-${c.replace(/ /g,'_')}" onclick="selectConseiller('${c}')">
-        <input type="radio" name="cons" value="${c}">
+      <div class="radio-card" id="rc-${c.name.replace(/ /g,'_')}" onclick="selectConseiller('${c.name}')">
+        <input type="radio" name="cons" value="${c.name}">
         <div>
-          <div class="radio-card-title">${c}</div>
-          <div class="radio-card-desc">${getRoleLabel(c)}</div>
+          <div class="radio-card-title">${c.name}</div>
+          <div class="radio-card-desc">${c.role}</div>
         </div>
       </div>
     `).join('');
@@ -1205,9 +1208,11 @@ async function approveAppointment(id) {
 }
 
 function getRoleLabel(name) {
-  if (name === 'Mokthar Brahem' || name === 'Sirine Fantar') return 'Chargé(e) de Clientèle';
-  if (name === 'Jihen Charfi') return "Guichet d'accueil";
-  if (name === 'Sirine Memmi') return 'Responsable Guichet';
+  if (name === 'Mokthar Brahem') return 'Chargé de Clientèle';
+  if (name === 'Sirine Fantar') return 'Chargée de Clientèle';
+  if (name === 'Mariem Graiet') return "Chef d'Agence";
+  if (name === 'Sirine Memmi') return 'Responsable Caisse';
+  if (name === 'Jihen Charfi') return 'Agent Caisse';
   return 'Agent Wifak Bank';
 }
 
@@ -1473,6 +1478,14 @@ function fmtLong(d) {
       <button class="modal-close" onclick="closeModal('rdv-approval-modal')">×</button>
     </div>
     <div class="modal-body">
+      <div style="background:var(--blue-50);border-radius:8px;padding:12px;margin-bottom:12px">
+        <div style="font-size:.78rem;color:var(--gray-500);margin-bottom:2px">Client</div>
+        <div style="font-weight:700;color:var(--gray-900)" id="rdv-client-display"></div>
+      </div>
+      <div style="background:var(--gray-100);border-radius:8px;padding:12px;margin-bottom:12px">
+        <div style="font-size:.78rem;color:var(--gray-500);margin-bottom:2px">Date &amp; Heure</div>
+        <div style="font-weight:600;color:var(--gray-800)" id="rdv-datetime-display"></div>
+      </div>
       <div style="background:var(--blue-50);border-radius:8px;padding:12px;margin-bottom:16px">
         <div style="font-size:.8rem;color:var(--gray-500);margin-bottom:4px">Motif du rendez-vous</div>
         <div style="font-weight:600;color:var(--gray-900)" id="rdv-motif-display"></div>

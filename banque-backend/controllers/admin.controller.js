@@ -267,7 +267,7 @@ exports.getPendingRegistrations = async (req, res) => {
 exports.approveRegistration = async (req, res) => {
   try {
     const { id } = req.params;
-    const { accountType } = req.body;
+    const { accountType, cardType } = req.body;
 
     if (!accountType) {
       return res.status(400).json({ message: "Type de compte requis" });
@@ -282,11 +282,11 @@ exports.approveRegistration = async (req, res) => {
     // Générer un IBAN simple
     const iban = 'TN59' + String(Date.now()).slice(-16).padStart(16, '0');
 
-    // Créer le compte bancaire
+    // Créer le compte bancaire avec le type de carte
     await db.query(
-      `INSERT INTO accounts (user_id, iban, balance, currency, account_type)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [id, iban, 0, 'TND', accountType]
+      `INSERT INTO accounts (user_id, iban, balance, currency, account_type, card_type)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [id, iban, 0, 'TND', accountType, cardType || null]
     );
 
     res.json({ message: "Compte approuvé et créé ✅" });
@@ -326,18 +326,45 @@ exports.getConseillerSuggestions = async (req, res) => {
     const motif = result.rows[0].reason || "";
     const m = motif.toLowerCase();
 
+    // Récupérer aussi l'info du client pour le motif
+    const aptInfo = await db.query(
+      `SELECT a.datetime, a.reason, u.nom, u.prenom
+       FROM appointments a JOIN users u ON u.id = a.user_id
+       WHERE a.id = $1`, [id]
+    );
+    const apt = aptInfo.rows[0] || {};
+
     let suggestions;
     if (m.includes("crédit") || m.includes("credit") || m.includes("prêt") || m.includes("pret") || m.includes("immobilier") || m.includes("financement")) {
-      suggestions = ["Mokthar Brahem", "Sirine Fantar"];
-    } else if (m.includes("ouverture") || m.includes("compte") || m.includes("carte")) {
-      suggestions = ["Jihen Charfi"];
-    } else if (m.includes("conseil") || m.includes("information") || m.includes("renseignement")) {
-      suggestions = ["Sirine Memmi"];
+      suggestions = [
+        { name: "Mokthar Brahem",  role: "Chargé de Clientèle" },
+        { name: "Sirine Fantar",   role: "Chargée de Clientèle" },
+      ];
+    } else if (m.includes("ouverture") || m.includes("compte") || m.includes("carte") || m.includes("virement")) {
+      suggestions = [
+        { name: "Jihen Charfi",    role: "Agent Caisse" },
+        { name: "Sirine Memmi",    role: "Responsable Caisse" },
+      ];
+    } else if (m.includes("chef") || m.includes("réclamation") || m.includes("plainte") || m.includes("direction")) {
+      suggestions = [
+        { name: "Mariem Graiet",   role: "Chef d'Agence" },
+      ];
     } else {
-      suggestions = ["Mokthar Brahem", "Sirine Fantar", "Jihen Charfi", "Sirine Memmi"];
+      suggestions = [
+        { name: "Mokthar Brahem",  role: "Chargé de Clientèle" },
+        { name: "Sirine Fantar",   role: "Chargée de Clientèle" },
+        { name: "Mariem Graiet",   role: "Chef d'Agence" },
+        { name: "Sirine Memmi",    role: "Responsable Caisse" },
+        { name: "Jihen Charfi",    role: "Agent Caisse" },
+      ];
     }
 
-    res.json({ motif, suggestions });
+    res.json({
+      motif,
+      client: apt.prenom ? `${apt.prenom} ${apt.nom}` : "Client",
+      datetime: apt.datetime,
+      suggestions,
+    });
   } catch (err) {
     console.error("Erreur getConseillerSuggestions ❌", err);
     res.status(500).json({ message: "Erreur serveur" });

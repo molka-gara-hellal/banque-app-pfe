@@ -6,44 +6,55 @@ exports.createSession = async (userId, token, req) => {
   try {
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
-    // Détecter le type et modèle d'appareil depuis User-Agent
     const ua = req.headers["user-agent"] || "";
     const xDeviceName = req.headers["x-device-name"] || "";
     const xDeviceType = req.headers["x-device-type"] || "";
+    const xDeviceModel = req.headers["x-device-model"] || "";
+    const xDeviceOS = req.headers["x-device-os"] || "";
+
     let deviceName = "Appareil inconnu";
     let deviceType = "other";
 
-    // Priorité aux headers personnalisés envoyés par l'app
+    // Priorité 1 : headers envoyés explicitement par l'app mobile
     if (xDeviceName) {
       deviceName = xDeviceName;
       deviceType = xDeviceType || "mobile";
-    } else if (ua.includes("iPhone")) {
-      // Extraire le modèle iPhone
-      const match = ua.match(/iPhone OS (\d+_\d+)/);
-      deviceName = match ? `iPhone (iOS ${match[1].replace("_", ".")})` : "iPhone";
+      if (xDeviceModel) deviceName = xDeviceModel;
+      if (xDeviceOS) deviceName = `${xDeviceModel || xDeviceName} (${xDeviceOS})`;
+    }
+    // Priorité 2 : User-Agent
+    else if (ua.includes("iPhone")) {
+      const match = ua.match(/iPhone OS (\d+[_\d]*)/);
+      const ios = match ? "iOS " + match[1].replace(/_/g, ".") : "iOS";
+      deviceName = `iPhone (${ios})`;
       deviceType = "mobile";
     } else if (ua.includes("iPad")) {
       deviceName = "iPad";
       deviceType = "tablet";
-    } else if (ua.includes("Samsung") || ua.includes("SM-")) {
+    } else if (ua.includes("SM-") || ua.includes("Samsung")) {
       const match = ua.match(/SM-([A-Z0-9]+)/);
-      deviceName = match ? `Samsung ${match[1]}` : "Samsung";
+      deviceName = match ? `Samsung Galaxy (${match[1]})` : "Samsung";
       deviceType = "mobile";
-    } else if (ua.includes("Xiaomi") || ua.includes("MI ") || ua.includes("Redmi")) {
-      deviceName = "Xiaomi";
+    } else if (ua.includes("Xiaomi") || ua.includes("Redmi") || ua.includes("MI ")) {
+      const match = ua.match(/Xiaomi ([^;)]+)|Redmi ([^;)]+)/);
+      deviceName = match ? (match[1] || match[2]).trim() : "Xiaomi";
       deviceType = "mobile";
     } else if (ua.includes("Huawei") || ua.includes("HUAWEI")) {
-      deviceName = "Huawei";
+      const match = ua.match(/HUAWEI ([^;) ]+)/);
+      deviceName = match ? `Huawei ${match[1]}` : "Huawei";
       deviceType = "mobile";
     } else if (ua.includes("Android") && ua.includes("Mobile")) {
       const match = ua.match(/; ([^;)]+) Build/);
-      deviceName = match ? match[1].trim() : "Android Mobile";
+      deviceName = match ? match[1].trim() : "Android";
       deviceType = "mobile";
     } else if (ua.includes("Android")) {
-      deviceName = "Android Tablet";
+      deviceName = "Tablette Android";
       deviceType = "tablet";
-    } else if (ua.includes("Windows")) {
-      deviceName = "Windows PC";
+    } else if (ua.includes("Windows NT")) {
+      const match = ua.match(/Windows NT ([\d.]+)/);
+      const ver = match ? match[1] : "";
+      const name = ver === "10.0" ? "Windows 10/11" : `Windows (NT ${ver})`;
+      deviceName = name;
       deviceType = "desktop";
     } else if (ua.includes("Macintosh")) {
       deviceName = "Mac";
@@ -51,25 +62,25 @@ exports.createSession = async (userId, token, req) => {
     } else if (ua.includes("Linux")) {
       deviceName = "Linux PC";
       deviceType = "desktop";
-    } else if (ua.includes("Expo") || ua.includes("okhttp")) {
+    } else if (ua.includes("Expo") || ua.includes("okhttp") || ua.includes("Dart")) {
       deviceName = "Application Mobile";
       deviceType = "mobile";
+    } else {
+      deviceName = "Appareil inconnu";
+      deviceType = "other";
     }
 
-    // Récupérer IP
-    const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "Inconnue";
+    const ip = (req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "Inconnue")
+      .split(",")[0].trim();
 
-    // Localisation simplifiée (basée sur IP — toujours Tunisie pour un PFE local)
     const location = "Tunisie";
 
-    // Désactiver les anciennes sessions du même appareil/IP si elles existent
+    // Désactiver les anciennes sessions du même appareil/IP
     await db.query(
-      `UPDATE sessions SET is_active = false
-       WHERE user_id = $1 AND ip_address = $2 AND device_type = $3`,
+      `UPDATE sessions SET is_active = false WHERE user_id = $1 AND ip_address = $2 AND device_type = $3`,
       [userId, ip, deviceType]
     );
 
-    // Créer la nouvelle session
     await db.query(
       `INSERT INTO sessions (user_id, device_name, device_type, location, ip_address, token_hash, last_active, is_active)
        VALUES ($1, $2, $3, $4, $5, $6, NOW(), true)`,

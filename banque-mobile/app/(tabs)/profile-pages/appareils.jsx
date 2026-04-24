@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import api from "../../../servives/api";
+import { useLanguage } from "../../../i18n/LanguageContext";
 
 function getDeviceIcon(deviceType) {
   if (deviceType === "mobile") return "📱";
@@ -37,6 +38,7 @@ function formatLastActive(dateStr) {
 
 export default function AppareilsConnectes() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(null);
@@ -59,7 +61,7 @@ export default function AppareilsConnectes() {
 
   async function handleDisconnect(session) {
     Alert.alert(
-      "Déconnecter l'appareil",
+      t("devices.disconnect") || "Déconnecter l'appareil",
       `Voulez-vous déconnecter "${session.device_name}" ?`,
       [
         { text: "Annuler", style: "cancel" },
@@ -84,7 +86,7 @@ export default function AppareilsConnectes() {
 
   async function handleDisconnectAll() {
     Alert.alert(
-      "Déconnecter tous les appareils",
+      t("devices.disconnectAll") || "Déconnecter tous les appareils",
       "Voulez-vous déconnecter tous les autres appareils ?",
       [
         { text: "Annuler", style: "cancel" },
@@ -110,7 +112,7 @@ export default function AppareilsConnectes() {
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
           <Text style={s.backArrow}>←</Text>
         </TouchableOpacity>
-        <Text style={s.title}>Appareils connectés</Text>
+        <Text style={s.title}>{t("devices.title") || "Appareils connectés"}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -122,7 +124,7 @@ export default function AppareilsConnectes() {
           </View>
         ) : sessions.length === 0 ? (
           <View style={s.emptyBox}>
-            <Text style={s.emptyText}>Aucune session active</Text>
+            <Text style={s.emptyText}>{t("devices.noSessions") || "Aucune session active"}</Text>
           </View>
         ) : (
           <>
@@ -149,7 +151,7 @@ export default function AppareilsConnectes() {
                   </View>
                   <Text style={s.deviceInfo}>📍 {session.location}</Text>
                   <Text style={s.deviceInfo}>
-                    🕐 {formatLastActive(session.last_active)}
+                    🕐 {formatLastActive(session.last_active, t)}
                   </Text>
                   <Text style={s.deviceInfo}>🌐 {session.ip_address}</Text>
                 </View>
@@ -161,7 +163,7 @@ export default function AppareilsConnectes() {
                     {disconnecting === session.id ? (
                       <ActivityIndicator size="small" color="#FF3B30" />
                     ) : (
-                      <Text style={s.disconnectBtn}>Déconnecter</Text>
+                      <Text style={s.disconnectBtn}>{t("devices.disconnect") || "Déconnecter"}</Text>
                     )}
                   </TouchableOpacity>
                 )}
@@ -173,9 +175,7 @@ export default function AppareilsConnectes() {
                 style={s.disconnectAllBtn}
                 onPress={handleDisconnectAll}
               >
-                <Text style={s.disconnectAllText}>
-                  Déconnecter tous les autres appareils
-                </Text>
+                <Text style={s.disconnectAllText}>{t("devices.disconnectAll") || "Déconnecter tous les autres appareils"}</Text>
               </TouchableOpacity>
             )}
           </>
@@ -183,8 +183,7 @@ export default function AppareilsConnectes() {
 
         <View style={s.warningBox}>
           <Text style={s.warningText}>
-            ⚠️ Si vous ne reconnaissez pas un appareil, déconnectez-le
-            immédiatement et changez votre mot de passe.
+            {t("devices.warning") || "⚠️ Si vous ne reconnaissez pas un appareil, déconnectez-le immédiatement et changez votre mot de passe."}
           </Text>
         </View>
       </ScrollView>

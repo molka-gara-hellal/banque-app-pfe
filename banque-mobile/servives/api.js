@@ -9,6 +9,7 @@ const baseURL =
 
 const api = axios.create({ baseURL });
 
+// ── Intercepteur : ajoute token + infos appareil ─────────────────────────────
 api.interceptors.request.use(async (config) => {
   try {
     if (Platform.OS === "web") {
@@ -17,6 +18,16 @@ api.interceptors.request.use(async (config) => {
     } else {
       const token = await AsyncStorage.getItem("token");
       if (token) config.headers.Authorization = `Bearer ${token}`;
+
+      // ✅ Envoyer les infos d'appareil pour la session (appareils connectés)
+      const deviceName = await AsyncStorage.getItem("device_name") || "Application Mobile";
+      const deviceModel = await AsyncStorage.getItem("device_model") || "Smartphone";
+      const deviceOS = await AsyncStorage.getItem("device_os") || Platform.OS;
+
+      config.headers["x-device-name"] = deviceName;
+      config.headers["x-device-model"] = deviceModel;
+      config.headers["x-device-os"] = deviceOS;
+      config.headers["x-device-type"] = "mobile";
     }
   } catch (e) {}
   return config;

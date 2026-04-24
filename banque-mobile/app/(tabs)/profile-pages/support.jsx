@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import { useLanguage } from "../../../i18n/LanguageContext";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -14,6 +15,7 @@ import api from "../../../servives/api";
 
 export default function ContacterSupport() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,9 +23,9 @@ export default function ContacterSupport() {
   const [error, setError] = useState("");
 
   const channels = [
-    { icon: "📞", label: "Téléphone", value: "+216 73 487 123", action: () => Linking.openURL("tel:+21673487123") },
-    { icon: "📧", label: "Email", value: "support@wifakbank.tn", action: () => Linking.openURL("mailto:support@wifakbank.tn") },
-    { icon: "💬", label: "Chat en ligne", value: "Lundi - Samedi, 8h - 20h", action: null },
+    { icon: "📞", label: t("support.phone") || "Téléphone", value: "+216 73 487 123", action: () => Linking.openURL("tel:+21673487123") },
+    { icon: "📧", label: t("support.email") || "Email", value: "support@wifakbank.tn", action: () => Linking.openURL("mailto:support@wifakbank.tn") },
+    { icon: "💬", label: t("support.chat") || "Chat en ligne", value: t("support.chatHours") || "Lundi - Samedi, 8h - 20h", action: null },
   ];
 
   const handleSend = async () => {
@@ -37,7 +39,7 @@ export default function ContacterSupport() {
       });
       setSent(true);
     } catch (e) {
-      setError(e.response?.data?.message || "Erreur lors de l'envoi. Réessayez.");
+      setError(e.response?.data?.message || t("support.error") || "Erreur lors de l'envoi. Réessayez.");
     } finally {
       setLoading(false);
     }
@@ -49,12 +51,12 @@ export default function ContacterSupport() {
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
           <Text style={s.backArrow}>←</Text>
         </TouchableOpacity>
-        <Text style={s.title}>Contacter le support</Text>
+        <Text style={s.title}>{t("support.title") || "Contacter le support"}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={s.content}>
-        <Text style={s.sectionLabel}>Nous contacter</Text>
+        <Text style={s.sectionLabel}>{t("support.contactUs") || "Nous contacter"}</Text>
         {channels.map((c, i) => (
           <TouchableOpacity
             key={i}
@@ -71,21 +73,20 @@ export default function ContacterSupport() {
           </TouchableOpacity>
         ))}
 
-        <Text style={[s.sectionLabel, { marginTop: 8 }]}>Envoyer un message</Text>
+        <Text style={[s.sectionLabel, { marginTop: 8 }]}>{t("support.sendMessage") || "Envoyer un message"}</Text>
 
         {sent ? (
           <View style={s.successBox}>
             <Text style={{ fontSize: 40, marginBottom: 12 }}>✅</Text>
-            <Text style={s.successTitle}>Message envoyé !</Text>
+            <Text style={s.successTitle}>{t("support.sent") || "Message envoyé !"}</Text>
             <Text style={s.successText}>
-              Votre message a été transmis à notre équipe.{"\n"}
-              Nous vous répondrons dans les 24h.
+              {t("support.sentDesc") || "Votre message a été transmis. Nous vous répondrons dans les 24h."}
             </Text>
             <TouchableOpacity
               style={s.newMsgBtn}
               onPress={() => { setSent(false); setSubject(""); setMessage(""); }}
             >
-              <Text style={s.newMsgBtnText}>Envoyer un autre message</Text>
+              <Text style={s.newMsgBtnText}>{t("support.sendAnother") || "Envoyer un autre message"}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -96,21 +97,21 @@ export default function ContacterSupport() {
               </View>
             ) : null}
 
-            <Text style={s.fieldLabel}>Sujet</Text>
+            <Text style={s.fieldLabel}>{t("support.subject") || "Sujet"}</Text>
             <TextInput
               style={s.input}
               value={subject}
               onChangeText={setSubject}
-              placeholder="Ex: Problème de connexion"
+              placeholder={t("support.subjectPlaceholder") || "Ex: Problème de connexion"}
               placeholderTextColor="#aaa"
             />
 
-            <Text style={s.fieldLabel}>Message</Text>
+            <Text style={s.fieldLabel}>{t("support.message") || "Message"}</Text>
             <TextInput
               style={[s.input, s.textarea]}
               value={message}
               onChangeText={setMessage}
-              placeholder="Décrivez votre problème..."
+              placeholder={t("support.messagePlaceholder") || "Décrivez votre problème..."}
               placeholderTextColor="#aaa"
               multiline
               numberOfLines={5}
@@ -124,7 +125,7 @@ export default function ContacterSupport() {
             >
               {loading
                 ? <ActivityIndicator color="#fff" />
-                : <Text style={s.sendBtnText}>Envoyer le message</Text>
+                : <Text style={s.sendBtnText}>{t("support.send") || "Envoyer le message"}</Text>
               }
             </TouchableOpacity>
           </View>

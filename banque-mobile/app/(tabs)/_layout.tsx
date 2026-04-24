@@ -19,7 +19,7 @@ const HIDDEN_TABS = [
 export default function TabsLayout() {
   const router = useRouter();
   const segments = useSegments();
-  const { t, langue } = useLanguage();
+  const { t, langue, langVersion } = useLanguage();
   const { theme, themeKey } = useTheme();
   const currentTab = segments[segments.length - 1];
   const showBar = !HIDDEN_TABS.includes(currentTab);
@@ -35,10 +35,10 @@ export default function TabsLayout() {
   const d = theme;
 
   return (
-    // ✅ key={langue + themeKey} force un remount complet quand langue ou thème change
-    <View key={`${langue}-${themeKey}`} style={{ flex: 1, backgroundColor: d.bg }}>
+    <View style={{ flex: 1, backgroundColor: d.bg }}>
       <View style={{ flex: 1 }}>
-        <Slot />
+        {/* ✅ key sur Slot force le remount quand langue/thème change */}
+        <Slot key={`${langVersion}-${themeKey}`} />
       </View>
 
       {showBar && (
@@ -49,8 +49,7 @@ export default function TabsLayout() {
               <TouchableOpacity
                 key={tab.name}
                 style={[s.tabItem, isActive && { backgroundColor: d.primaryLight }]}
-                onPress={() => router.push(`/(tabs)/${tab.name}`)}
-              >
+                onPress={() => router.push(("/(tabs)/" + tab.name) as any)}              >
                 <Text style={s.tabIcon}>{tab.icon}</Text>
                 <Text style={[s.tabLabel, { color: isActive ? d.primary : d.textMuted }, isActive && s.tabLabelActive]}>
                   {tab.label}

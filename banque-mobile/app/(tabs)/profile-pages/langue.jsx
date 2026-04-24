@@ -78,7 +78,7 @@ export default function LangueSettings() {
 
         {applied ? (
           <View style={s.successBox}>
-            <Text style={s.successText}>✅ Langue appliquée à toute l'application</Text>
+            <Text style={s.successText}>✅ Langue appliquée à toute l application</Text>
           </View>
         ) : null}
 
