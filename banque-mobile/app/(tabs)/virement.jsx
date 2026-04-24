@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import api from "../../servives/api";
 
-const NO_VIREMENT_TYPES = ["wadiaa", "wadiaa_specifique", "wadiaa specifique", "ithmar", "epargne"];
+const NO_VIREMENT_TYPES = ["wadiaa", "wadiaa_specifique", "wadiaa spécifique", "wadiaa specifique", "ithmar", "epargne", "épargne"];
 
 export default function VirementScreen() {
   const router = useRouter();

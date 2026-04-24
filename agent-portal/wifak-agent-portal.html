@@ -192,8 +192,8 @@
   }
   .modal-overlay.open { opacity: 1; pointer-events: all; }
   .modal {
-    background: #fff; border-radius: 16px; width: 100%; max-width: 580px;
-    max-height: 90vh; overflow-y: auto;
+    background: #fff; border-radius: 16px; width: 100%; max-width: 620px;
+    max-height: 88vh; overflow-y: auto;
     box-shadow: var(--shadow-lg);
     transform: translateY(20px); transition: transform .2s;
   }
@@ -1179,32 +1179,44 @@ async function approveAppointment(id) {
   selectedRdvId = id;
   selectedConseiller = '';
 
-  // Charger les suggestions de conseillers pour ce RDV
-  try {
-    const data = await apiGet('/api/admin/appointments/' + id + '/suggestions');
-    const suggestions = data.suggestions || [];
-    const motif = data.motif || '';
-    const client = data.client || '';
-    const datetime = data.datetime ? new Date(data.datetime).toLocaleString('fr-FR', { day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
+  // Trouver le RDV localement
+  const rdv = appointments.find(a => a.id == id);
+  const motif = rdv ? rdv.reason : '';
 
-    document.getElementById('rdv-motif-display').textContent = motif;
-    document.getElementById('rdv-client-display').textContent = client;
-    document.getElementById('rdv-datetime-display').textContent = datetime;
-    document.getElementById('rdv-conseiller-options').innerHTML = suggestions.map(c => `
-      <div class="radio-card" id="rc-${c.name.replace(/ /g,'_')}" onclick="selectConseiller('${c.name}')">
-        <input type="radio" name="cons" value="${c.name}">
-        <div>
-          <div class="radio-card-title">${c.name}</div>
-          <div class="radio-card-desc">${c.role}</div>
-        </div>
-      </div>
-    `).join('');
-
-    document.getElementById('confirm-rdv-btn').disabled = true;
-    openModal('rdv-approval-modal');
-  } catch(e) {
-    showToast('Erreur chargement suggestions', 'error');
+  // Calculer suggestions localement selon le motif
+  const m = (motif || '').toLowerCase();
+  let suggestions;
+  if (m.includes('crédit') || m.includes('credit') || m.includes('prêt') || m.includes('pret') || m.includes('immobilier') || m.includes('financement') || m.includes('remboursement')) {
+    suggestions = ['Mokthar Brahem', 'Sirine Fantar'];
+  } else if (m.includes('ouverture') || m.includes('compte') || m.includes('carte') || m.includes('wadiaa') || m.includes('ithmar')) {
+    suggestions = ['Jihen Charfi', 'Sirine Memmi'];
+  } else if (m.includes('conseil') || m.includes('information') || m.includes('renseignement') || m.includes('épargne') || m.includes('epargne') || m.includes('placement')) {
+    suggestions = ['Sirine Memmi', 'Mokthar Brahem'];
+  } else if (m.includes('réclamation') || m.includes('reclamation') || m.includes('problème') || m.includes('probleme')) {
+    suggestions = ['Mariem Graiet'];
+  } else if (m.includes('virement') || m.includes('transfert') || m.includes('paiement')) {
+    suggestions = ['Jihen Charfi', 'Sirine Memmi'];
+  } else {
+    suggestions = ['Mokthar Brahem', 'Sirine Fantar', 'Jihen Charfi', 'Sirine Memmi'];
   }
+
+  // Afficher le motif et le client dans le modal
+  const clientName = rdv ? rdv.name : '';
+  document.getElementById('rdv-motif-display').textContent = motif || 'Non précisé';
+
+  // Générer les options conseillers (suggestions = tableau de strings)
+  document.getElementById('rdv-conseiller-options').innerHTML = suggestions.map(c => `
+    <div class="radio-card" id="rc-${c.replace(/ /g,'_')}" onclick="selectConseiller('${c}')">
+      <input type="radio" name="cons" value="${c}">
+      <div>
+        <div class="radio-card-title">${c}</div>
+        <div class="radio-card-desc">${getRoleLabel(c)}</div>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('confirm-rdv-btn').disabled = true;
+  openModal('rdv-approval-modal');
 }
 
 function getRoleLabel(name) {

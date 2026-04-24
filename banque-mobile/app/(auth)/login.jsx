@@ -76,7 +76,7 @@ export default function LoginScreen() {
         <View style={s.pwdWrapper}>
           <TextInput style={[s.input, { paddingRight: 50, marginBottom: 0 }]} placeholder={t("auth.password")} placeholderTextColor="#aaa" value={password} onChangeText={setPassword} secureTextEntry={!showPwd} autoCapitalize="none" />
           <TouchableOpacity style={s.eyeBtn} onPress={() => setShowPwd(!showPwd)}>
-            <Text style={{ fontSize: 18, color: "#aaa" }}>{showPwd ? "visibility" : "visibility_off"}</Text>
+            <Text style={{ fontSize: 20 }}>{showPwd ? "👁️" : "👁️‍🗨️"}</Text>
           </TouchableOpacity>
         </View>
       </View>
