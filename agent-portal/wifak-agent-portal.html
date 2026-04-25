@@ -1418,68 +1418,117 @@ function selectClient(id) {
   renderClientList();
   const c = allClients.find(x => x.id == id);
   if (!c) return;
+  const totalBalance = c.accounts.reduce((s, a) => s + a.balance, 0);
   document.getElementById('client-detail').innerHTML = `
     <div style="display:flex;flex-direction:column;gap:16px">
-      <!-- Personal Info -->
-      <div class="card card-body">
-        <div class="section-title mb-16">
-          <svg width="18" height="18" fill="none" stroke="var(--green-600)" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          Informations personnelles
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-          <div><div class="text-sm text-muted">Nom complet</div><div class="fw-600 mt-4">${c.name}</div></div>
-          <div><div class="text-sm text-muted">Membre depuis</div><div class="fw-600 mt-4">${fmt(c.created_at)}</div></div>
-          <div><div class="text-sm text-muted">✉ Email</div><div class="fw-600 mt-4">${c.email}</div></div>
-          <div><div class="text-sm text-muted">📞 Téléphone</div><div class="fw-600 mt-4">${c.phone}</div></div>
-        </div>
-      </div>
-      <!-- Accounts -->
-      <div class="card card-body">
-        <div class="section-title mb-16">
-          <svg width="18" height="18" fill="none" stroke="var(--green-600)" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-          Comptes bancaires
-        </div>
-        ${c.accounts.map(a => `
-          <div class="account-card">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-              <div>
-                <div style="font-size:1rem;font-weight:700;color:var(--gray-900)">${a.type}</div>
-                <div style="font-size:.78rem;font-family:monospace;color:var(--gray-500);margin-top:2px">${a.num}</div>
-              </div>
-              <div style="font-size:1.4rem;font-weight:700;color:var(--green-700)">${a.balance.toLocaleString('fr-TN')} TND</div>
-            </div>
-            <div style="display:flex;gap:20px">
-              <div><div class="text-sm text-muted">IBAN</div><div class="fw-600 mt-4 text-sm" style="font-family:monospace">${a.iban || a.num || '—'}</div></div>
-            </div>
+
+      <!-- Header client -->
+      <div class="card card-body" style="background:linear-gradient(135deg,#1a3c6e,#2d5fa0);color:#fff;border-radius:16px">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+          <div style="width:56px;height:56px;border-radius:28px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700">${c.name.charAt(0)}</div>
+          <div>
+            <div style="font-size:1.2rem;font-weight:700">${c.name}</div>
+            <div style="font-size:.82rem;opacity:.75">Client depuis ${fmt(c.created_at)}</div>
           </div>
-        `).join('')}
+          <div style="margin-left:auto;text-align:right">
+            <div style="font-size:.75rem;opacity:.6">Solde total</div>
+            <div style="font-size:1.3rem;font-weight:700">${totalBalance.toLocaleString('fr-TN')} TND</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:10px">
+            <div style="font-size:.72rem;opacity:.65;margin-bottom:3px">✉ Email</div>
+            <div style="font-size:.88rem;font-weight:600">${c.email}</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:10px">
+            <div style="font-size:.72rem;opacity:.65;margin-bottom:3px">📞 Téléphone</div>
+            <div style="font-size:.88rem;font-weight:600">${c.phone || '—'}</div>
+          </div>
+        </div>
       </div>
+
+      <!-- Comptes -->
+      <div class="card card-body">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div class="section-title" style="margin-bottom:0">
+            <svg width="18" height="18" fill="none" stroke="var(--green-600)" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            Comptes bancaires (${c.accounts.length})
+          </div>
+          <button class="btn btn-primary" style="font-size:.8rem;padding:6px 12px" onclick="openAddAccountModal(${c.id}, '${c.name}')">
+            + Ouvrir un compte
+          </button>
+        </div>
+        ${c.accounts.length === 0
+          ? '<div style="color:var(--gray-400);text-align:center;padding:20px">Aucun compte</div>'
+          : c.accounts.map(a => `
+            <div class="account-card" style="margin-bottom:10px">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+                <div>
+                  <div style="font-size:.95rem;font-weight:700;color:var(--gray-900)">${a.type || 'Compte'}</div>
+                  <div style="font-size:.75rem;font-family:monospace;color:var(--gray-500);margin-top:2px">${a.iban || a.num || '—'}</div>
+                </div>
+                <div style="font-size:1.2rem;font-weight:700;color:var(--green-700)">${a.balance.toLocaleString('fr-TN')} TND</div>
+              </div>
+            </div>
+          `).join('')
+        }
+      </div>
+
       <!-- Transactions -->
       <div class="card card-body">
         <div class="section-title mb-8">
-          <svg width="18" height="18" fill="none" stroke="var(--green-600)" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          Historique des transactions
+          Historique des transactions (${c.txns ? c.txns.length : 0})
         </div>
-        ${c.txns.map(t => `
-          <div class="txn-item">
-            <div style="display:flex;align-items:center;gap:12px">
-              <div class="txn-icon" style="background:${t.type==='credit'?'var(--green-100)':'var(--red-100)'}">
-                ${t.type==='credit'
-                  ? `<svg width="16" height="16" fill="none" stroke="var(--green-600)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>`
-                  : `<svg width="16" height="16" fill="none" stroke="var(--red-600)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>`
-                }
+        ${!c.txns || c.txns.length === 0
+          ? '<div style="color:var(--gray-400);text-align:center;padding:16px">Aucune transaction</div>'
+          : c.txns.map(t => `
+            <div class="txn-item">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div class="txn-icon" style="background:${t.type==='credit'?'var(--green-100)':'var(--red-100)'}">
+                  ${t.type==='credit'
+                    ? '<svg width="16" height="16" fill="none" stroke="var(--green-600)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>'
+                    : '<svg width="16" height="16" fill="none" stroke="var(--red-600)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>'
+                  }
+                </div>
+                <div>
+                  <div style="font-size:.875rem;font-weight:500;color:var(--gray-800)">${t.desc || t.description || '—'}</div>
+                  <div style="font-size:.75rem;color:var(--gray-400);margin-top:2px">${fmt(t.date)}</div>
+                </div>
               </div>
-              <div>
-                <div style="font-size:.875rem;font-weight:500;color:var(--gray-800)">${t.desc}</div>
-                <div style="font-size:.75rem;color:var(--gray-400);margin-top:2px">${fmt(t.date)} &nbsp;·&nbsp; ${t.acc}</div>
-              </div>
+              <div class="txn-amount ${t.type}">${t.type==='credit'?'+':'-'}${t.amount.toLocaleString('fr-TN')} TND</div>
             </div>
-            <div class="txn-amount ${t.type}">${t.type==='credit'?'+':'-'}${t.amount.toLocaleString('fr-TN')} TND</div>
-          </div>
-        `).join('')}
+          `).join('')
+        }
       </div>
     </div>
   `;
+}
+
+
+// ══ OPEN ACCOUNT FROM CLIENT PROFILE ══
+let addAccountClientId = null;
+let addAccountClientName = '';
+
+function openAddAccountModal(clientId, clientName) {
+  addAccountClientId = clientId;
+  addAccountClientName = clientName;
+  document.getElementById('add-acc-modal-client-name').textContent = clientName;
+  document.getElementById('add-acc-modal-type').value = '';
+  openModal('add-account-modal');
+}
+
+async function confirmAddAccount() {
+  const accountType = document.getElementById('add-acc-modal-type').value;
+  if (!accountType) { showToast('Choisissez un type de compte', 'error'); return; }
+  try {
+    await apiPost('/api/admin/accounts', { user_id: addAccountClientId, accountType });
+    closeModal('add-account-modal');
+    showToast('✅ Compte ' + accountType + ' créé pour ' + addAccountClientName, 'success');
+    // Reload clients to update
+    const clients = await apiGet('/api/admin/clients');
+    allClients = clients;
+    selectClient(addAccountClientId);
+  } catch(e) { showToast('Erreur création compte', 'error'); }
 }
 
 // ══════════════ MODAL ══════════════
@@ -1628,6 +1677,37 @@ function fmtLong(d) {
       <div style="display:flex;gap:12px;margin-top:16px">
         <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="closeModal('support-reply-modal')">Annuler</button>
         <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="sendSupportReply()">Envoyer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL OUVRIR COMPTE ══ -->
+<div class="modal-overlay" id="add-account-modal">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <h2>Ouvrir un nouveau compte</h2>
+      <button class="modal-close" onclick="closeModal('add-account-modal')">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--blue-50);border-radius:10px;padding:12px;margin-bottom:16px">
+        <div style="font-size:.8rem;color:var(--gray-500);margin-bottom:2px">Client</div>
+        <div style="font-weight:700;color:var(--gray-900)" id="add-acc-modal-client-name"></div>
+      </div>
+      <label style="font-size:.85rem;font-weight:600;color:var(--gray-600);display:block;margin-bottom:8px">Type de compte</label>
+      <select id="add-acc-modal-type" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--gray-200);font-size:.9rem;margin-bottom:16px">
+        <option value="">-- Choisir le type --</option>
+        <option value="courant">Compte Courant</option>
+        <option value="epargne">Compte Épargne</option>
+        <option value="wadiaa">Compte Wadiaa</option>
+        <option value="wadiaa_specifique">Compte Wadiaa Spécifique</option>
+        <option value="ithmar">Compte Ithmar</option>
+      </select>
+      <div style="display:flex;gap:12px">
+        <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="closeModal('add-account-modal')">Annuler</button>
+        <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="confirmAddAccount()">Créer le compte</button>
       </div>
     </div>
   </div>

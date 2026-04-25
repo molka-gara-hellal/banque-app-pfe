@@ -61,3 +61,20 @@ exports.replyMessage = async (req, res) => {
     res.status(500).json({ message: "Erreur serveur" });
   }
 };
+// GET /api/support/my-messages — client voit ses messages et les réponses
+exports.getMyMessages = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const result = await db.query(
+      `SELECT id, sujet, message, statut, reponse, created_at, updated_at
+       FROM support_messages
+       WHERE user_id = $1
+       ORDER BY created_at DESC`,
+      [userId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Erreur getMyMessages ❌", err.message);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+};

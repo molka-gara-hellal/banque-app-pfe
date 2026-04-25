@@ -25,6 +25,7 @@ export default function ProfilScreen() {
       { icon: "📱", label: t("profile.devices"),      route: "/(tabs)/profile-pages/appareils" },
     ]},
     { title: t("profile.preferences"), items: [
+      { icon: "🏦", label: "Mes comptes", route: "/(tabs)/mes-comptes" },
       { icon: "🔔", label: t("profile.notifications"), route: "/(tabs)/profile-pages/notifications" },
       { icon: "🌍", label: t("profile.language"),      route: "/(tabs)/profile-pages/langue" },
       { icon: "🎨", label: t("profile.appearance"),    route: "/(tabs)/profile-pages/apparence" },
@@ -32,6 +33,7 @@ export default function ProfilScreen() {
     { title: t("profile.support"), items: [
       { icon: "❓", label: t("profile.faq"),           route: "/(tabs)/profile-pages/faq" },
       { icon: "📞", label: t("profile.contactSupport"), route: "/(tabs)/profile-pages/support" },
+      { icon: "💬", label: "Mes messages", route: "/(tabs)/profile-pages/mes-messages" },
       { icon: "📄", label: t("profile.terms"),         route: "/(tabs)/profile-pages/conditions" },
     ]},
   ];

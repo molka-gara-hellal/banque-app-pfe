@@ -4,17 +4,30 @@ const PDFDocument = require("pdfkit");
 exports.getMyAccount = async (req, res) => {
   try {
     const userId = req.user.id;
-
     const result = await db.query(
-      "SELECT * FROM accounts WHERE user_id = $1",
+      "SELECT * FROM accounts WHERE user_id = $1 ORDER BY created_at ASC",
       [userId]
     );
-
     if (!result.rows.length) {
       return res.status(404).json({ message: "Aucun compte trouvé" });
     }
-
+    // Return first account for backward compatibility
     res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+// ✅ GET ALL ACCOUNTS
+exports.getMyAccounts = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const result = await db.query(
+      "SELECT * FROM accounts WHERE user_id = $1 ORDER BY created_at ASC",
+      [userId]
+    );
+    res.json(result.rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Erreur serveur" });
