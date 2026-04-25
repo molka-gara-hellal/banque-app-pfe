@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import api from "../../servives/api";
+import { getSelectedAccountId } from "../../store/authStore";
 
 const NO_VIREMENT_TYPES = ["wadiaa", "wadiaa_specifique", "wadiaa spécifique", "wadiaa specifique", "ithmar", "epargne", "épargne"];
 
@@ -34,8 +35,17 @@ export default function VirementScreen() {
 
   const loadAccount = async () => {
     try {
-      const res = await api.get("/accounts/me");
-      setAccount(res.data);
+      const accId = await getSelectedAccountId();
+      const url = accId ? `/accounts/all` : "/accounts/me";
+      const res = await api.get(url);
+      // Si /all → trouver le compte sélectionné, sinon utiliser /me
+      if (Array.isArray(res.data)) {
+        const accIdNum = accId ? parseInt(accId, 10) : null;
+        const found = accIdNum ? res.data.find(a => a.id === accIdNum) : res.data[0];
+        setAccount(found || res.data[0] || null);
+      } else {
+        setAccount(res.data);
+      }
     } catch (_) {}
     finally { setLoadingAccount(false); }
   };

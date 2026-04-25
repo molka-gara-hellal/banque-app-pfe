@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import api from "../../../servives/api";
+import api from "../../servives/api";
 
 export default function MesMessagesSupport() {
   const router = useRouter();

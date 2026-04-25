@@ -97,20 +97,31 @@ exports.virement = async (req, res) => {
 exports.getMyTransactions = async (req, res) => {
   try {
     const userId = req.user.id;
+    const requestedAccountId = req.query.account_id ? parseInt(req.query.account_id, 10) : null;
 
-    // Récupérer le compte du user
-    const accountResult = await db.query(
-      "SELECT id FROM accounts WHERE user_id = $1",
-      [userId]
-    );
-
-    if (!accountResult.rows.length) {
-      return res.status(404).json({ message: "Aucun compte trouvé" });
+    // Vérifier que le compte appartient bien à ce user
+    let accountId;
+    if (requestedAccountId) {
+      const check = await db.query(
+        "SELECT id FROM accounts WHERE id = $1 AND user_id = $2",
+        [requestedAccountId, userId]
+      );
+      if (!check.rows.length) {
+        return res.status(403).json({ message: "Compte non autorisé" });
+      }
+      accountId = requestedAccountId;
+    } else {
+      // Fallback : premier compte du user
+      const accountResult = await db.query(
+        "SELECT id FROM accounts WHERE user_id = $1 ORDER BY created_at ASC",
+        [userId]
+      );
+      if (!accountResult.rows.length) {
+        return res.status(404).json({ message: "Aucun compte trouvé" });
+      }
+      accountId = accountResult.rows[0].id;
     }
 
-    const accountId = accountResult.rows[0].id;
-
-    // Récupérer transactions
     const txResult = await db.query(
       "SELECT * FROM transactions WHERE account_id = $1 ORDER BY created_at DESC",
       [accountId]

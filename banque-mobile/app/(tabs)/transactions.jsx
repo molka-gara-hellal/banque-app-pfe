@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import api from "../../servives/api";
+import { getSelectedAccountId } from "../../store/authStore";
 
 const CATEGORIES = ["Tous", "Achats", "Alimentation", "Factures", "Virements"];
 
@@ -43,12 +44,17 @@ export default function TransactionsScreen() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("Tous");
 
-  useEffect(() => {
-    api.get("/transactions")
-      .then(r => setTransactions(r.data || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  useEffect(() => { loadTx(); }, []);
+
+  const loadTx = async () => {
+    try {
+      const accId = await getSelectedAccountId();
+      const url = accId ? `/transactions?account_id=${accId}` : "/transactions";
+      const r = await api.get(url);
+      setTransactions(r.data || []);
+    } catch (_) {}
+    finally { setLoading(false); }
+  };
 
   const filtered = transactions.filter(tx => {
     const label = tx.label || tx.description || tx.type || "";

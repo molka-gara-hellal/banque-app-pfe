@@ -33,7 +33,7 @@ export default function ProfilScreen() {
     { title: t("profile.support"), items: [
       { icon: "❓", label: t("profile.faq"),           route: "/(tabs)/profile-pages/faq" },
       { icon: "📞", label: t("profile.contactSupport"), route: "/(tabs)/profile-pages/support" },
-      { icon: "💬", label: "Mes messages", route: "/(tabs)/profile-pages/mes-messages" },
+      { icon: "💬", label: "Mes messages", route: "/(tabs)/mes-messages" },
       { icon: "📄", label: t("profile.terms"),         route: "/(tabs)/profile-pages/conditions" },
     ]},
   ];
