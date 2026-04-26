@@ -141,7 +141,7 @@ export default function OtpScreen() {
             </View>
           )}
           <Text style={styles.pendingNote}>
-            Cette page vérifie automatiquement l'état de votre demande.
+            Cette page vérifie automatiquement l état de votre demande.
           </Text>
           <TouchableOpacity style={styles.backToLoginBtn} onPress={() => router.replace("/(auth)/login")}>
             <Text style={styles.backToLoginText}>Retour à la connexion</Text>
@@ -194,9 +194,11 @@ export default function OtpScreen() {
               value={c}
               onChangeText={v => onChange(i, v)}
               onKeyPress={({ nativeEvent }) => onKeyPress(i, nativeEvent.key)}
+              onPress={() => inputs.current[i]?.focus()}
               keyboardType={Platform.OS === "ios" ? "number-pad" : "numeric"}
               maxLength={1}
               selectTextOnFocus
+              caretHidden
             />
           ))}
         </View>
@@ -255,10 +257,10 @@ const styles = StyleSheet.create({
   emailBadgeText: { color: "#1a3c6e", fontSize: 13, fontWeight: "600" },
   errorBox: { backgroundColor: "#fee2e2", borderRadius: 10, padding: 10, marginBottom: 16 },
   errorText: { color: "#dc2626", textAlign: "center", fontSize: 14 },
-  otpRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8, gap: 8 },
+  otpRow: { flexDirection: "row", justifyContent: "center", marginBottom: 8, gap: 6 },
   otpBox: {
-    flex: 1, height: 56, borderRadius: 14, backgroundColor: "#fff",
-    textAlign: "center", fontSize: 22, fontWeight: "700",
+    width: 44, height: 52, borderRadius: 10, backgroundColor: "#fff",
+    textAlign: "center", fontSize: 20, fontWeight: "700",
     borderWidth: 1.5, borderColor: "#dde3ed", color: "#1a1a2e",
   },
   otpBoxFilled: { borderColor: "#1a3c6e", backgroundColor: "#EBF5FF" },

@@ -2,175 +2,168 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  RefreshControl,
-  ScrollView,
+  Alert,
+  Image,
+  Platform,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import * as LocalAuthentication from "expo-local-authentication";
 import api from "../../servives/api";
+import { saveToken, saveUser, getToken, getUser } from "../../store/authStore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useLanguage } from "../../i18n/LanguageContext";
 
-export default function MesMessagesSupport() {
-  const router = useRouter();
-  const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  useEffect(() => { loadMessages(); }, []);
-
-  const loadMessages = async () => {
+async function detectAndStoreDevice() {
+  try {
+    if (Platform.OS === "web") return;
+    let deviceName = "Application Mobile";
+    let deviceModel = "Smartphone";
+    let deviceOS = Platform.OS === "ios" ? "iOS" : "Android";
     try {
-      const res = await api.get("/support/my-messages");
-      setMessages(res.data || []);
-    } catch (e) {
-      console.log("Erreur messages:", e?.response?.data);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      const Device = require("expo-device");
+      deviceModel = Device.modelName || "Smartphone";
+      deviceName = Device.deviceName || deviceModel;
+      deviceOS = Platform.OS === "ios" ? "iOS " + Platform.Version : "Android " + Platform.Version;
+    } catch (_) {}
+    await AsyncStorage.setItem("device_name", deviceName);
+    await AsyncStorage.setItem("device_model", deviceModel);
+    await AsyncStorage.setItem("device_os", deviceOS);
+  } catch (_) {}
+}
+
+export default function LoginScreen() {
+  const router = useRouter();
+  const { t } = useLanguage();
+  const [email, setEmail]       = useState("");
+  const [password, setPassword] = useState("");
+  const [showPwd, setShowPwd]   = useState(false);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState("");
+  const [bioAvailable, setBioAvailable] = useState(true); // toujours visible
+
+  useEffect(() => {
+    // On garde le bouton visible même si on ne peut pas vérifier
+    if (Platform.OS === "web") setBioAvailable(false);
+  }, []);
+
+  const handleBiometricLogin = async () => {
+    try {
+      if (Platform.OS === "web") {
+        setError("L'empreinte digitale n'est pas disponible sur web.");
+        return;
+      }
+      const compatible = await LocalAuthentication.hasHardwareAsync();
+      if (!compatible) {
+        setError("Cet appareil ne supporte pas l'authentification biométrique.");
+        return;
+      }
+      const enrolled = await LocalAuthentication.isEnrolledAsync();
+      if (!enrolled) {
+        setError("Aucune empreinte enregistrée sur cet appareil. Allez dans les paramètres du téléphone.");
+        return;
+      }
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: "Connexion par empreinte digitale",
+        fallbackLabel: "Utiliser le mot de passe",
+        cancelLabel: "Annuler",
+        disableDeviceFallback: false,
+      });
+      if (result.success) {
+        const token = await getToken();
+        const user  = await getUser();
+        if (token && user) {
+          router.replace("/(tabs)/dashboard");
+        } else {
+          setError("Connectez-vous d'abord avec email/mot de passe pour activer l'empreinte.");
+        }
+      } else if (result.error !== "user_cancel" && result.error !== "system_cancel") {
+        setError("Authentification biométrique échouée. Réessayez.");
+      }
+    } catch {
+      setError("Erreur lors de l'authentification biométrique.");
     }
   };
 
-  const fmtDate = (d) => {
-    if (!d) return "";
-    return new Date(d).toLocaleDateString("fr-FR", {
-      day: "2-digit", month: "long", year: "numeric",
-      hour: "2-digit", minute: "2-digit",
-    });
+  const handleLogin = async () => {
+    setError("");
+    if (!email || !password) { setError("Veuillez remplir tous les champs"); return; }
+    setLoading(true);
+    try {
+      await detectAndStoreDevice();
+      const res = await api.post("/auth/login", { email, password });
+      await saveToken(res.data.token);
+      await saveUser(res.data.user);
+      router.replace("/(tabs)/dashboard");
+    } catch (err) {
+      const status = err.response?.data?.status;
+      if (status === "pending") {
+        setError(t("auth.pendingMessage") || "Compte en attente de validation.");
+      } else if (status === "rejected") {
+        setError(t("auth.rejectedMessage") || "Demande refusée.");
+      } else {
+        setError(err.response?.data?.message || "Connexion echouee");
+      }
+    } finally { setLoading(false); }
   };
 
   return (
-    <View style={s.root}>
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <Text style={s.backArrow}>←</Text>
-        </TouchableOpacity>
-        <Text style={s.title}>Mes messages</Text>
-        <View style={{ width: 40 }} />
+    <View style={s.container}>
+      <View style={s.logoSection}>
+        <Image source={require("../../assets/images/wifak-logo.png")} style={s.logo} />
+        <Text style={s.subtitle}>{t("auth.login")}</Text>
       </View>
+      {error ? <View style={s.errorBox}><Text style={s.errorText}>{error}</Text></View> : null}
+      <View style={s.fieldsContainer}>
+        <TextInput style={s.input} placeholder={t("auth.email")} placeholderTextColor="#aaa" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+        <View style={s.pwdWrapper}>
+          <TextInput style={[s.input, { paddingRight: 50, marginBottom: 0 }]} placeholder={t("auth.password")} placeholderTextColor="#aaa" value={password} onChangeText={setPassword} secureTextEntry={!showPwd} autoCapitalize="none" />
+          <TouchableOpacity style={s.eyeBtn} onPress={() => setShowPwd(!showPwd)}>
+            <Text style={{ fontSize: 20 }}>{showPwd ? "👁️" : "👁️‍🗨️"}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      <TouchableOpacity style={[s.btn, loading && { opacity: 0.7 }]} onPress={handleLogin} disabled={loading}>
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.btnText}>{t("auth.loginBtn")}</Text>}
+      </TouchableOpacity>
 
-      <ScrollView
-        contentContainerStyle={s.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadMessages(); }} colors={["#1a3c6e"]} />
-        }
-      >
-        {loading ? (
-          <View style={s.centered}>
-            <ActivityIndicator size="large" color="#1a3c6e" />
-          </View>
-        ) : messages.length === 0 ? (
-          <View style={s.emptyBox}>
-            <Text style={{ fontSize: 40, marginBottom: 12 }}>💬</Text>
-            <Text style={s.emptyTitle}>Aucun message</Text>
-            <Text style={s.emptyText}>
-              Vous n'avez pas encore envoyé de message au support.
-            </Text>
-            <TouchableOpacity
-              style={s.newMsgBtn}
-              onPress={() => router.push("/(tabs)/profile-pages/support")}
-            >
-              <Text style={s.newMsgBtnText}>Contacter le support</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <>
-            <Text style={s.sectionLabel}>{messages.length} message{messages.length > 1 ? "s" : ""}</Text>
-            {messages.map((msg) => (
-              <View key={msg.id} style={s.messageCard}>
-                {/* En-tête */}
-                <View style={s.messageHeader}>
-                  <View style={s.messageIconBox}>
-                    <Text style={{ fontSize: 18 }}>📩</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.messageSubject}>{msg.sujet}</Text>
-                    <Text style={s.messageDate}>{fmtDate(msg.created_at)}</Text>
-                  </View>
-                  <View style={[
-                    s.statusBadge,
-                    { backgroundColor: msg.statut === "traité" ? "#dcfce7" : "#fef3c7" }
-                  ]}>
-                    <Text style={[
-                      s.statusText,
-                      { color: msg.statut === "traité" ? "#16a34a" : "#d97706" }
-                    ]}>
-                      {msg.statut === "traité" ? "✅ Traité" : "⏳ En attente"}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Message client */}
-                <View style={s.messageBubble}>
-                  <Text style={s.messageBubbleLabel}>Votre message</Text>
-                  <Text style={s.messageBubbleText}>{msg.message}</Text>
-                </View>
-
-                {/* Réponse agent */}
-                {msg.reponse ? (
-                  <View style={s.replyBubble}>
-                    <View style={s.replyHeader}>
-                      <View style={s.replyAgentIcon}>
-                        <Text style={{ fontSize: 14 }}>🏦</Text>
-                      </View>
-                      <Text style={s.replyAgentLabel}>Réponse Wifak Bank</Text>
-                      <Text style={s.replyDate}>{fmtDate(msg.updated_at)}</Text>
-                    </View>
-                    <Text style={s.replyText}>{msg.reponse}</Text>
-                  </View>
-                ) : (
-                  <View style={s.waitingBox}>
-                    <Text style={s.waitingText}>
-                      ⏳ Votre message est en cours de traitement. Un agent vous répondra dans les 24h.
-                    </Text>
-                  </View>
-                )}
-              </View>
-            ))}
-
-            <TouchableOpacity
-              style={s.newMsgBtn}
-              onPress={() => router.push("/(tabs)/profile-pages/support")}
-            >
-              <Text style={s.newMsgBtnText}>+ Nouveau message</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </ScrollView>
+      {bioAvailable && (
+        <TouchableOpacity style={s.bioBtn} onPress={handleBiometricLogin}>
+          <Text style={s.bioIcon}>🫆</Text>
+          <Text style={s.bioText}>{"Se connecter avec l'empreinte"}</Text>
+        </TouchableOpacity>
+      )}
+      <View style={s.linksContainer}>
+        <TouchableOpacity onPress={() => router.push("/(auth)/forgot-password")}>
+          <Text style={s.link}>{t("auth.forgotPassword")}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push("/(auth)/register-step1")}>
+          <Text style={s.link}>{t("auth.noAccount")} {t("auth.register")}</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#F2F4F8" },
-  centered: { flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 40 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#fff", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: "#eef0f5" },
-  backBtn: { width: 40, height: 40, justifyContent: "center" },
-  backArrow: { fontSize: 24, color: "#1a3c6e" },
-  title: { fontSize: 16, fontWeight: "700", color: "#1a3c6e" },
-  content: { padding: 20, paddingBottom: 40 },
-  sectionLabel: { fontSize: 12, fontWeight: "700", color: "#888", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 14 },
-  emptyBox: { alignItems: "center", paddingVertical: 60 },
-  emptyTitle: { fontSize: 18, fontWeight: "700", color: "#1a1a2e", marginBottom: 8 },
-  emptyText: { fontSize: 14, color: "#888", textAlign: "center", lineHeight: 22, marginBottom: 20 },
-  messageCard: { backgroundColor: "#fff", borderRadius: 16, padding: 16, marginBottom: 14, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
-  messageHeader: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 14 },
-  messageIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: "#EBF5FF", justifyContent: "center", alignItems: "center" },
-  messageSubject: { fontSize: 14, fontWeight: "700", color: "#1a1a2e", flex: 1 },
-  messageDate: { fontSize: 11, color: "#888", marginTop: 2 },
-  statusBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
-  statusText: { fontSize: 11, fontWeight: "700" },
-  messageBubble: { backgroundColor: "#F2F4F8", borderRadius: 12, padding: 12, marginBottom: 10 },
-  messageBubbleLabel: { fontSize: 11, fontWeight: "600", color: "#888", marginBottom: 4 },
-  messageBubbleText: { fontSize: 14, color: "#333", lineHeight: 20 },
-  replyBubble: { backgroundColor: "#f0fdf4", borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: "#16a34a" },
-  replyHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
-  replyAgentIcon: { width: 26, height: 26, borderRadius: 13, backgroundColor: "#dcfce7", justifyContent: "center", alignItems: "center" },
-  replyAgentLabel: { fontSize: 12, fontWeight: "700", color: "#16a34a", flex: 1 },
-  replyDate: { fontSize: 10, color: "#888" },
-  replyText: { fontSize: 14, color: "#166534", lineHeight: 20 },
-  waitingBox: { backgroundColor: "#fef3c7", borderRadius: 12, padding: 12 },
-  waitingText: { fontSize: 13, color: "#92400e", lineHeight: 20 },
-  newMsgBtn: { backgroundColor: "#1a3c6e", borderRadius: 12, padding: 14, alignItems: "center", marginTop: 8 },
-  newMsgBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  container: { flex: 1, backgroundColor: "#f5f7fa", justifyContent: "center", alignItems: "center", paddingHorizontal: 32 },
+  logoSection: { alignItems: "center", marginBottom: 32 },
+  logo: { width: 128, height: 128, resizeMode: "contain", marginBottom: 16 },
+  subtitle: { fontSize: 18, color: "#888" },
+  errorBox: { width: "100%", backgroundColor: "#fee2e2", borderRadius: 10, padding: 12, marginBottom: 16 },
+  errorText: { color: "#dc2626", fontSize: 14, textAlign: "center" },
+  fieldsContainer: { width: "100%", gap: 14, marginBottom: 20 },
+  input: { width: "100%", backgroundColor: "#fff", borderWidth: 1, borderColor: "#dde3ed", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: "#1a1a2e" },
+  pwdWrapper: { position: "relative" },
+  eyeBtn: { position: "absolute", right: 14, top: "50%", transform: [{ translateY: -12 }] },
+  btn: { width: "100%", backgroundColor: "#1a3c6e", borderRadius: 10, paddingVertical: 16, alignItems: "center", marginBottom: 14 },
+  btnText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  bioBtn: { width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: "#fff", borderRadius: 10, paddingVertical: 14, borderWidth: 1.5, borderColor: "#1a3c6e", marginBottom: 20 },
+  bioIcon: { fontSize: 22 },
+  bioText: { color: "#1a3c6e", fontSize: 15, fontWeight: "600" },
+  linksContainer: { alignItems: "center", gap: 10 },
+  link: { color: "#1a3c6e", fontSize: 14 },
 });

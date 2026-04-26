@@ -15,7 +15,7 @@ import {
   View,
 } from "react-native";
 import api from "../../servives/api";
-import { saveToken, saveUser, saveSelectedAccountId, getSelectedAccountId } from "../../store/authStore";
+import { saveToken, saveUser, saveSelectedAccountId, getSelectedAccountId, removeSelectedAccountId } from "../../store/authStore";
 
 const ACCOUNT_COLORS = {
   courant:           { bg: "#1a3c6e", label: "Compte Courant",           icon: "💳" },
@@ -90,7 +90,7 @@ export default function MesComptesScreen() {
       const res = await api.post("/auth/login", { email: syncEmail.trim(), password: syncPwd });
       await saveToken(res.data.token);
       await saveUser(res.data.user);
-      await removeSelectedAccountId?.();
+      await removeSelectedAccountId();
       setSyncVisible(false);
       Alert.alert("Compte synchronisé ✅", `Connecté en tant que ${res.data.user.email}.`, [
         { text: "OK", onPress: () => router.replace("/(tabs)/dashboard") },
@@ -127,7 +127,7 @@ export default function MesComptesScreen() {
           <View style={s.emptyBox}>
             <Text style={{ fontSize: 40, marginBottom: 12 }}>🏦</Text>
             <Text style={s.emptyTitle}>Aucun compte</Text>
-            <Text style={s.emptyText}>Vous n'avez pas encore de compte bancaire.</Text>
+            <Text style={s.emptyText}>Vous n avez pas encore de compte bancaire.</Text>
           </View>
         ) : (
           <>
