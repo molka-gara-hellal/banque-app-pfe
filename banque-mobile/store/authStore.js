@@ -46,3 +46,21 @@ export const removeSelectedAccountId = async () => {
   if (isWeb) localStorage.removeItem("selected_account_id");
   else await AsyncStorage.removeItem("selected_account_id");
 };
+// ── Token biométrique (ne jamais supprimer lors du logout) ─────────────────
+export const saveBioToken = async (token) => {
+  if (isWeb) return;
+  await AsyncStorage.setItem("bio_token", token);
+};
+export const getBioToken = async () => {
+  if (isWeb) return null;
+  return await AsyncStorage.getItem("bio_token");
+};
+export const getBioUser = async () => {
+  if (isWeb) return null;
+  const u = await AsyncStorage.getItem("bio_user");
+  return u ? JSON.parse(u) : null;
+};
+export const saveBioUser = async (user) => {
+  if (isWeb) return;
+  await AsyncStorage.setItem("bio_user", JSON.stringify(user));
+};
